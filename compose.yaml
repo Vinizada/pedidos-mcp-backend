@@ -1,0 +1,75 @@
+name: pedidos-mcp
+
+x-app: &app
+  image: pedidos-mcp-backend:local
+  build: .
+  environment:
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pedidos}:${POSTGRES_PASSWORD:?Execute scripts/configurar_env.py}@db:5432/${POSTGRES_DB:-pedidos}
+    API_TOKEN: ${API_TOKEN:?Execute scripts/configurar_env.py}
+    SEARCH_MODE: ${SEARCH_MODE:-hybrid}
+    EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    EMBEDDING_CACHE_DIR: /home/app/.cache/embeddings
+    ALLOWED_HOSTS: '${ALLOWED_HOSTS:-["localhost","127.0.0.1","backend"]}'
+    ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:8000","http://127.0.0.1:8000"]}'
+  volumes:
+    - model_cache:/home/app/.cache/embeddings
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.2-pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pedidos}
+      POSTGRES_USER: ${POSTGRES_USER:-pedidos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute scripts/configurar_env.py}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  init:
+    <<: *app
+    command: ["python", "-m", "pedidos.bootstrap"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    <<: *app
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  test-db:
+    image: pgvector/pgvector:0.8.2-pg17
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: pedidos_test
+      POSTGRES_USER: pedidos
+      POSTGRES_PASSWORD: pedidos_test_local
+    ports:
+      - "127.0.0.1:55433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pedidos -d pedidos_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  model_cache:

@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Contract(BaseModel):
@@ -68,7 +68,9 @@ class BuscaOutput(Contract):
     consulta: str
     modo: str
     candidatos: list[Candidato]
-    aviso: str = "Ranking não é probabilidade. Confirme marca, embalagem e unidade; não substitua itens."
+    aviso: str = (
+        "Ranking não é probabilidade. Confirme marca, embalagem e unidade; não substitua itens."
+    )
 
 
 class DisponibilidadeOutput(Contract):

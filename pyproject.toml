@@ -27,6 +27,7 @@ packages = ["src/pedidos"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = ["integration: exige PostgreSQL de teste com pgvector"]
 
 [tool.ruff]

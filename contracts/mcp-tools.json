@@ -1,0 +1,1068 @@
+{
+  "versao_contrato": 1,
+  "tools": [
+    {
+      "name": "buscar_produtos",
+      "description": "Busca EAN/SKU exato ou candidatos por descrição. Confirme marca e embalagem.",
+      "inputSchema": {
+        "$defs": {
+          "BuscaInput": {
+            "additionalProperties": false,
+            "properties": {
+              "consulta": {
+                "maxLength": 300,
+                "minLength": 2,
+                "title": "Consulta",
+                "type": "string"
+              },
+              "limite": {
+                "default": 5,
+                "maximum": 20,
+                "minimum": 1,
+                "title": "Limite",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "consulta"
+            ],
+            "title": "BuscaInput",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/BuscaInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "buscar_produtosArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "Candidato": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "title": "Marca",
+                "type": "string"
+              },
+              "categoria": {
+                "title": "Categoria",
+                "type": "string"
+              },
+              "unidade": {
+                "title": "Unidade",
+                "type": "string"
+              },
+              "embalagem": {
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "ativo": {
+                "title": "Ativo",
+                "type": "boolean"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              },
+              "score": {
+                "title": "Score",
+                "type": "number"
+              },
+              "origem": {
+                "enum": [
+                  "ean",
+                  "sku",
+                  "lexical",
+                  "hibrida"
+                ],
+                "title": "Origem",
+                "type": "string"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "categoria",
+              "unidade",
+              "embalagem",
+              "ativo",
+              "preco_unitario",
+              "estoque_disponivel",
+              "score",
+              "origem"
+            ],
+            "title": "Candidato",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "consulta": {
+            "title": "Consulta",
+            "type": "string"
+          },
+          "modo": {
+            "title": "Modo",
+            "type": "string"
+          },
+          "candidatos": {
+            "items": {
+              "$ref": "#/$defs/Candidato"
+            },
+            "title": "Candidatos",
+            "type": "array"
+          },
+          "aviso": {
+            "default": "Ranking não é probabilidade. Confirme marca, embalagem e unidade; não substitua itens.",
+            "title": "Aviso",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consulta",
+          "modo",
+          "candidatos"
+        ],
+        "title": "BuscaOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "consultar_disponibilidade",
+      "description": "Consulta preço vigente e estoque atual; não reserva mercadorias.",
+      "inputSchema": {
+        "$defs": {
+          "ProdutoIdsInput": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Produto Ids",
+                "type": "array"
+              }
+            },
+            "required": [
+              "produto_ids"
+            ],
+            "title": "ProdutoIdsInput",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/ProdutoIdsInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "consultar_disponibilidadeArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ProdutoView": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "title": "Marca",
+                "type": "string"
+              },
+              "categoria": {
+                "title": "Categoria",
+                "type": "string"
+              },
+              "unidade": {
+                "title": "Unidade",
+                "type": "string"
+              },
+              "embalagem": {
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "ativo": {
+                "title": "Ativo",
+                "type": "boolean"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "categoria",
+              "unidade",
+              "embalagem",
+              "ativo",
+              "preco_unitario",
+              "estoque_disponivel"
+            ],
+            "title": "ProdutoView",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "produtos": {
+            "items": {
+              "$ref": "#/$defs/ProdutoView"
+            },
+            "title": "Produtos",
+            "type": "array"
+          },
+          "nao_encontrados": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Nao Encontrados",
+            "type": "array"
+          }
+        },
+        "required": [
+          "produtos",
+          "nao_encontrados"
+        ],
+        "title": "DisponibilidadeOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "buscar_cliente",
+      "description": "Busca clientes por código ou nome; peça esclarecimento em caso de ambiguidade.",
+      "inputSchema": {
+        "$defs": {
+          "BuscaInput": {
+            "additionalProperties": false,
+            "properties": {
+              "consulta": {
+                "maxLength": 300,
+                "minLength": 2,
+                "title": "Consulta",
+                "type": "string"
+              },
+              "limite": {
+                "default": 5,
+                "maximum": 20,
+                "minimum": 1,
+                "title": "Limite",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "consulta"
+            ],
+            "title": "BuscaInput",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/BuscaInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "buscar_clienteArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ClienteView": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "codigo": {
+                "title": "Codigo",
+                "type": "string"
+              },
+              "nome": {
+                "title": "Nome",
+                "type": "string"
+              },
+              "ativo": {
+                "title": "Ativo",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "codigo",
+              "nome",
+              "ativo"
+            ],
+            "title": "ClienteView",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "clientes": {
+            "items": {
+              "$ref": "#/$defs/ClienteView"
+            },
+            "title": "Clientes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "clientes"
+        ],
+        "title": "ClientesOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "validar_carrinho",
+      "description": "Valida IDs, quantidades, preço e estoque e calcula totais sem gravar pedido.",
+      "inputSchema": {
+        "$defs": {
+          "CarrinhoInput": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/ItemInput"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Itens",
+                "type": "array"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "itens"
+            ],
+            "title": "CarrinhoInput",
+            "type": "object"
+          },
+          "ItemInput": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "quantidade": {
+                "exclusiveMinimum": 0,
+                "maximum": 100000,
+                "title": "Quantidade",
+                "type": "integer"
+              },
+              "unidade": {
+                "const": "UN",
+                "default": "UN",
+                "title": "Unidade",
+                "type": "string"
+              }
+            },
+            "required": [
+              "produto_id",
+              "quantidade"
+            ],
+            "title": "ItemInput",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/CarrinhoInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "validar_carrinhoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ItemCalculado": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "ean": {
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome_produto": {
+                "title": "Nome Produto",
+                "type": "string"
+              },
+              "unidade": {
+                "title": "Unidade",
+                "type": "string"
+              },
+              "embalagem": {
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "quantidade": {
+                "title": "Quantidade",
+                "type": "integer"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Preco Unitario"
+              },
+              "subtotal": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Subtotal"
+              }
+            },
+            "required": [
+              "produto_id",
+              "ean",
+              "nome_produto",
+              "unidade",
+              "embalagem",
+              "quantidade",
+              "preco_unitario",
+              "subtotal"
+            ],
+            "title": "ItemCalculado",
+            "type": "object"
+          },
+          "Problema": {
+            "additionalProperties": false,
+            "properties": {
+              "codigo": {
+                "title": "Codigo",
+                "type": "string"
+              },
+              "mensagem": {
+                "title": "Mensagem",
+                "type": "string"
+              },
+              "produto_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Produto Id"
+              }
+            },
+            "required": [
+              "codigo",
+              "mensagem"
+            ],
+            "title": "Problema",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "valido": {
+            "title": "Valido",
+            "type": "boolean"
+          },
+          "cliente_id": {
+            "format": "uuid",
+            "title": "Cliente Id",
+            "type": "string"
+          },
+          "moeda": {
+            "const": "BRL",
+            "default": "BRL",
+            "title": "Moeda",
+            "type": "string"
+          },
+          "itens": {
+            "items": {
+              "$ref": "#/$defs/ItemCalculado"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "problemas": {
+            "items": {
+              "$ref": "#/$defs/Problema"
+            },
+            "title": "Problemas",
+            "type": "array"
+          },
+          "aviso": {
+            "default": "Consulta não reserva estoque. Rascunho não é pedido confirmado.",
+            "title": "Aviso",
+            "type": "string"
+          }
+        },
+        "required": [
+          "valido",
+          "cliente_id",
+          "itens",
+          "total",
+          "problemas"
+        ],
+        "title": "CarrinhoOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "criar_pedido_rascunho",
+      "description": "Grava rascunho atomicamente. Reuse a chave em retries. Não confirma nem baixa estoque.",
+      "inputSchema": {
+        "$defs": {
+          "ItemInput": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "quantidade": {
+                "exclusiveMinimum": 0,
+                "maximum": 100000,
+                "title": "Quantidade",
+                "type": "integer"
+              },
+              "unidade": {
+                "const": "UN",
+                "default": "UN",
+                "title": "Unidade",
+                "type": "string"
+              }
+            },
+            "required": [
+              "produto_id",
+              "quantidade"
+            ],
+            "title": "ItemInput",
+            "type": "object"
+          },
+          "PedidoInput": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/ItemInput"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Itens",
+                "type": "array"
+              },
+              "chave_idempotencia": {
+                "maxLength": 100,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9._:-]+$",
+                "title": "Chave Idempotencia",
+                "type": "string"
+              },
+              "referencia_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Referencia Documento"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "itens",
+              "chave_idempotencia"
+            ],
+            "title": "PedidoInput",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/PedidoInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "criar_pedido_rascunhoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ItemCalculado": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "ean": {
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome_produto": {
+                "title": "Nome Produto",
+                "type": "string"
+              },
+              "unidade": {
+                "title": "Unidade",
+                "type": "string"
+              },
+              "embalagem": {
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "quantidade": {
+                "title": "Quantidade",
+                "type": "integer"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Preco Unitario"
+              },
+              "subtotal": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Subtotal"
+              }
+            },
+            "required": [
+              "produto_id",
+              "ean",
+              "nome_produto",
+              "unidade",
+              "embalagem",
+              "quantidade",
+              "preco_unitario",
+              "subtotal"
+            ],
+            "title": "ItemCalculado",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "pedido_id": {
+            "format": "uuid",
+            "title": "Pedido Id",
+            "type": "string"
+          },
+          "cliente_id": {
+            "format": "uuid",
+            "title": "Cliente Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "rascunho",
+            "title": "Status",
+            "type": "string"
+          },
+          "criado_em": {
+            "format": "date-time",
+            "title": "Criado Em",
+            "type": "string"
+          },
+          "moeda": {
+            "const": "BRL",
+            "default": "BRL",
+            "title": "Moeda",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Total"
+          },
+          "referencia_documento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencia Documento"
+          },
+          "itens": {
+            "items": {
+              "$ref": "#/$defs/ItemCalculado"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "repeticao_idempotente": {
+            "default": false,
+            "title": "Repeticao Idempotente",
+            "type": "boolean"
+          },
+          "aviso": {
+            "default": "Rascunho: não reserva nem baixa estoque; confirmação humana fora deste protótipo.",
+            "title": "Aviso",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pedido_id",
+          "cliente_id",
+          "status",
+          "criado_em",
+          "total",
+          "referencia_documento",
+          "itens"
+        ],
+        "title": "PedidoView",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "consultar_pedido",
+      "description": "Retorna rascunho persistido e os valores registrados na criação.",
+      "inputSchema": {
+        "properties": {
+          "pedido_id": {
+            "format": "uuid",
+            "title": "Pedido Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pedido_id"
+        ],
+        "title": "consultar_pedidoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ItemCalculado": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "ean": {
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome_produto": {
+                "title": "Nome Produto",
+                "type": "string"
+              },
+              "unidade": {
+                "title": "Unidade",
+                "type": "string"
+              },
+              "embalagem": {
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "quantidade": {
+                "title": "Quantidade",
+                "type": "integer"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Preco Unitario"
+              },
+              "subtotal": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Subtotal"
+              }
+            },
+            "required": [
+              "produto_id",
+              "ean",
+              "nome_produto",
+              "unidade",
+              "embalagem",
+              "quantidade",
+              "preco_unitario",
+              "subtotal"
+            ],
+            "title": "ItemCalculado",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "pedido_id": {
+            "format": "uuid",
+            "title": "Pedido Id",
+            "type": "string"
+          },
+          "cliente_id": {
+            "format": "uuid",
+            "title": "Cliente Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "rascunho",
+            "title": "Status",
+            "type": "string"
+          },
+          "criado_em": {
+            "format": "date-time",
+            "title": "Criado Em",
+            "type": "string"
+          },
+          "moeda": {
+            "const": "BRL",
+            "default": "BRL",
+            "title": "Moeda",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Total"
+          },
+          "referencia_documento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencia Documento"
+          },
+          "itens": {
+            "items": {
+              "$ref": "#/$defs/ItemCalculado"
+            },
+            "title": "Itens",
+            "type": "array"
+          },
+          "repeticao_idempotente": {
+            "default": false,
+            "title": "Repeticao Idempotente",
+            "type": "boolean"
+          },
+          "aviso": {
+            "default": "Rascunho: não reserva nem baixa estoque; confirmação humana fora deste protótipo.",
+            "title": "Aviso",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pedido_id",
+          "cliente_id",
+          "status",
+          "criado_em",
+          "total",
+          "referencia_documento",
+          "itens"
+        ],
+        "title": "PedidoView",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

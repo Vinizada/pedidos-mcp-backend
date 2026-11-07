@@ -118,4 +118,6 @@ class ProdutoEmbedding(Base):
     modelo: Mapped[str] = mapped_column(String(200))
     hash_conteudo: Mapped[str] = mapped_column(String(64))
     vetor: Mapped[list[float]] = mapped_column(Vector(384))
-    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
