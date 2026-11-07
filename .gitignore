@@ -16,5 +16,7 @@ tmp/
 output/
 .cache/
 backup*.sql
+uploads/
+.playwright-mcp/
 # Enunciado fornecido pelo professor; não distribuir no repositório.
 Trabalho IA Generativa.pdf

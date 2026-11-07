@@ -9,10 +9,12 @@ x-app: &app
     SEARCH_MODE: ${SEARCH_MODE:-hybrid}
     EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
     EMBEDDING_CACHE_DIR: /home/app/.cache/embeddings
+    UPLOAD_DIR: /home/app/uploads
     ALLOWED_HOSTS: '${ALLOWED_HOSTS:-["localhost","127.0.0.1","backend"]}'
     ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:8000","http://127.0.0.1:8000"]}'
   volumes:
     - model_cache:/home/app/.cache/embeddings
+    - uploads_data:/home/app/uploads
 
 services:
   db:
@@ -70,6 +72,21 @@ services:
       timeout: 3s
       retries: 20
 
+  tests:
+    image: pedidos-mcp-tests:local
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    environment:
+      TEST_DATABASE_URL: postgresql+psycopg://pedidos:pedidos_test_local@test-db:5432/pedidos_test
+      API_TOKEN: tests-only-not-for-deployment-00000000
+      SEARCH_MODE: lexical
+    depends_on:
+      test-db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   model_cache:
+  uploads_data:

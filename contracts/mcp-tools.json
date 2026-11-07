@@ -718,6 +718,19 @@
                 ],
                 "default": null,
                 "title": "Referencia Documento"
+              },
+              "documento_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Documento Id"
               }
             },
             "required": [
@@ -819,6 +832,14 @@
             "title": "Cliente Id",
             "type": "string"
           },
+          "cliente_nome": {
+            "title": "Cliente Nome",
+            "type": "string"
+          },
+          "cliente_codigo": {
+            "title": "Cliente Codigo",
+            "type": "string"
+          },
           "status": {
             "const": "rascunho",
             "title": "Status",
@@ -857,6 +878,19 @@
             ],
             "title": "Referencia Documento"
           },
+          "documento_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Documento Id"
+          },
           "itens": {
             "items": {
               "$ref": "#/$defs/ItemCalculado"
@@ -878,6 +912,8 @@
         "required": [
           "pedido_id",
           "cliente_id",
+          "cliente_nome",
+          "cliente_codigo",
           "status",
           "criado_em",
           "total",
@@ -990,6 +1026,14 @@
             "title": "Cliente Id",
             "type": "string"
           },
+          "cliente_nome": {
+            "title": "Cliente Nome",
+            "type": "string"
+          },
+          "cliente_codigo": {
+            "title": "Cliente Codigo",
+            "type": "string"
+          },
           "status": {
             "const": "rascunho",
             "title": "Status",
@@ -1028,6 +1072,19 @@
             ],
             "title": "Referencia Documento"
           },
+          "documento_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Documento Id"
+          },
           "itens": {
             "items": {
               "$ref": "#/$defs/ItemCalculado"
@@ -1049,6 +1106,8 @@
         "required": [
           "pedido_id",
           "cliente_id",
+          "cliente_nome",
+          "cliente_codigo",
           "status",
           "criado_em",
           "total",

@@ -123,7 +123,7 @@ def test_chunked_body_limit_cannot_be_bypassed(http_app, sizes, expected):
             "method": "POST",
             "headers": [(b"authorization", f"Bearer {TEST_TOKEN}".encode())],
         }
-        await http_app.AccessMiddleware(downstream)(scope, receive, send)
+        await http_app.AccessMiddleware(downstream, http_app.settings)(scope, receive, send)
         assert sent[0]["status"] == expected
         if expected == 200:
             assert len(downstream_received[0]["body"]) == sum(sizes)

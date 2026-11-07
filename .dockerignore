@@ -9,4 +9,6 @@ __pycache__
 data
 tmp
 output
+.playwright-mcp
+uploads
 Trabalho IA Generativa.pdf

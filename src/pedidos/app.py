@@ -1,17 +1,22 @@
-import hmac
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
+from tempfile import TemporaryFile
 from uuid import UUID
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from fastapi import APIRouter, FastAPI, Security
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.security import HTTPBearer
 from sqlalchemy import text
-from starlette.datastructures import Headers
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.staticfiles import StaticFiles
 
 from pedidos.config import get_settings
+from pedidos.dashboard_api import router as dashboard_router
 from pedidos.db import get_engine, session_factory
+from pedidos.http_security import AccessMiddleware
 from pedidos.mcp_server import create_mcp
 from pedidos.schemas import (
     BuscaInput,
@@ -33,65 +38,17 @@ mcp_app = mcp.streamable_http_app()
 
 @asynccontextmanager
 async def lifespan(app):
-    async with mcp.session_manager.run():
-        yield
-    get_engine().dispose()
+    try:
+        async with mcp.session_manager.run():
+            yield
+    finally:
+        get_engine().dispose()
 
 
 app = FastAPI(title="Pedidos MCP Backend", version="0.1.0", lifespan=lifespan)
 
 
-class AccessMiddleware:
-    """Autenticação compartilhada e limite de corpo; ASGI puro preserva transporte MCP."""
-
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            return await self.app(scope, receive, send)
-        headers = Headers(scope=scope)
-        origin = headers.get("origin")
-        if origin and origin not in settings.allowed_origins:
-            return await JSONResponse({"detail": "Origin não permitido"}, 403)(scope, receive, send)
-        public = {"/health/live", "/health/ready", "/docs", "/openapi.json", "/redoc"}
-        if scope["path"] not in public:
-            supplied = headers.get("authorization", "")
-            expected = "Bearer " + settings.api_token.get_secret_value()
-            if not hmac.compare_digest(supplied.encode(), expected.encode()):
-                return await JSONResponse(
-                    {"detail": "Bearer token necessário"},
-                    401,
-                    headers={"WWW-Authenticate": "Bearer"},
-                )(scope, receive, send)
-        # Buffer limitado antes de entregar ao FastAPI/SDK (inclusive chunked).
-        chunks, size = [], 0
-        while True:
-            message = await receive()
-            if message["type"] == "http.disconnect":
-                return
-            body = message.get("body", b"")
-            size += len(body)
-            if size > 262144:
-                return await JSONResponse({"detail": "Corpo excede 256 KiB"}, 413)(
-                    scope, receive, send
-                )
-            chunks.append(body)
-            if not message.get("more_body", False):
-                break
-        delivered = False
-
-        async def replay():
-            nonlocal delivered
-            if not delivered:
-                delivered = True
-                return {"type": "http.request", "body": b"".join(chunks), "more_body": False}
-            return await receive()
-
-        await self.app(scope, replay, send)
-
-
-app.add_middleware(AccessMiddleware)
+app.add_middleware(AccessMiddleware, settings=settings)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
 
@@ -101,6 +58,9 @@ async def business_error(request, exc: DomainError):
         "PEDIDO_NAO_ENCONTRADO": 404,
         "IDEMPOTENCIA_CONFLITO": 409,
         "INDICE_INDISPONIVEL": 503,
+        "DOCUMENTO_NAO_ENCONTRADO": 404,
+        "ARQUIVO_INDISPONIVEL": 404,
+        "ARQUIVO_MUITO_GRANDE": 413,
     }.get(exc.codigo, 422)
     return JSONResponse(exc.as_dict(), status_code=status)
 
@@ -120,7 +80,14 @@ def live():
 def ready():
     try:
         with session_factory()() as session:
-            session.execute(text("SELECT 1 FROM produtos LIMIT 1"))
+            expected = set(ScriptDirectory.from_config(Config("alembic.ini")).get_heads())
+            actual = set(session.scalars(text("SELECT version_num FROM alembic_version")))
+            if actual != expected:
+                return JSONResponse({"status": "unavailable"}, 503)
+            session.execute(text("SELECT documento_id FROM pedido_cabecalho LIMIT 1"))
+        with TemporaryFile(dir=settings.upload_dir) as probe:
+            probe.write(b"1")
+            probe.flush()
         return {"status": "ready"}
     except Exception:
         return JSONResponse({"status": "unavailable"}, 503)
@@ -165,5 +132,26 @@ def consultar_pedido(pedido_id: UUID):
 
 
 app.include_router(router)
+app.include_router(dashboard_router)
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return RedirectResponse("/interface")
+
+
+@app.get("/interface", include_in_schema=False)
+def interface():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+app.mount("/interface", StaticFiles(directory=STATIC_DIR, html=True, check_dir=False))
 # Por último: a aplicação MCP trata /mcp; rotas REST acima mantêm precedência.
 app.mount("/", mcp_app)

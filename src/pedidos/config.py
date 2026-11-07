@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     search_mode: Literal["lexical", "hybrid"] = "hybrid"
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     embedding_cache_dir: str = "/tmp/pedidos-models"
+    upload_dir: str = "/tmp/pedidos-uploads"
+    max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1, le=10 * 1024 * 1024)
     allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver", "backend"]
     allowed_origins: list[str] = ["http://localhost:8000", "http://127.0.0.1:8000"]
 

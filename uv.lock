@@ -657,6 +657,8 @@ dependencies = [
     { name = "pgvector" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
+    { name = "pypdf" },
+    { name = "python-multipart" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -664,7 +666,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
-    { name = "pypdf" },
     { name = "pytest" },
     { name = "reportlab" },
     { name = "ruff" },
@@ -679,6 +680,8 @@ requires-dist = [
     { name = "pgvector", specifier = ">=0.4,<1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pydantic-settings", specifier = ">=2.8,<3" },
+    { name = "pypdf", specifier = ">=6,<7" },
+    { name = "python-multipart", specifier = ">=0.0.22,<1" },
     { name = "sqlalchemy", specifier = ">=2.0,<3" },
     { name = "uvicorn", specifier = ">=0.34,<1" },
 ]
@@ -686,7 +689,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx", specifier = ">=0.28,<1" },
-    { name = "pypdf", specifier = ">=5,<7" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "reportlab", specifier = ">=4,<5" },
     { name = "ruff", specifier = ">=0.11,<1" },

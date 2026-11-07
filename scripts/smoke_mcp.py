@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import base64
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 
-async def main(url: str):
+async def main(url: str, com_documento: bool = False):
     load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     token = os.environ["API_TOKEN"]
     # O token é enviado apenas ao endpoint explicitamente indicado.
@@ -47,6 +48,26 @@ async def main(url: str):
                     "chave_idempotencia": "smoke-mcp-v1",
                     "referencia_documento": "smoke-sem-llm",
                 }
+                documento = None
+                if com_documento:
+                    content = b"Cliente CLI-001; produto MER-001; 2 unidades."
+                    response = await client.post(
+                        url.removesuffix("/mcp") + "/api/documentos",
+                        files={"arquivo": ("demonstracao.txt", content, "text/plain")},
+                    )
+                    response.raise_for_status()
+                    documento = response.json()
+                    assert documento["status"] == "aguardando_agente"
+                    document_id = documento["documento_id"]
+                    resource = await session.read_resource(
+                        f"pedidos://documentos/{document_id}/arquivo"
+                    )
+                    assert base64.b64decode(resource.contents[0].blob) == content
+                    data.update(
+                        documento_id=document_id,
+                        chave_idempotencia=f"demo-documento-{document_id}",
+                        referencia_documento="Demonstração de integração",
+                    )
                 first = await call("criar_pedido_rascunho", {"entrada": data})
                 repeated = await call("criar_pedido_rascunho", {"entrada": data})
                 assert first["pedido_id"] == repeated["pedido_id"]
@@ -61,6 +82,13 @@ async def main(url: str):
                     availability["produtos"][0]["estoque_disponivel"]
                     == product["estoque_disponivel"]
                 )
+                if documento:
+                    resource = await session.read_resource(
+                        f"pedidos://documentos/{documento['documento_id']}"
+                    )
+                    updated = json.loads(resource.contents[0].text)
+                    assert updated["status"] == "pedido_criado"
+                    assert updated["pedidos"][0]["pedido_id"] == saved["pedido_id"]
                 print(
                     json.dumps(
                         {
@@ -70,6 +98,7 @@ async def main(url: str):
                             "total": saved["total"],
                             "idempotencia": "ok",
                             "estoque_preservado": True,
+                            "documento_id": documento["documento_id"] if documento else None,
                         },
                         indent=2,
                     )
@@ -79,4 +108,10 @@ async def main(url: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:8000/mcp")
-    asyncio.run(main(parser.parse_args().url))
+    parser.add_argument(
+        "--com-documento",
+        action="store_true",
+        help="Envia TXT e associa rascunho para demonstração na interface, sem IA.",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.url, args.com_documento))

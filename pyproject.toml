@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pedidos-mcp-backend"
 version = "0.1.0"
-description = "Backend acadêmico de catálogo, busca e rascunhos de pedidos via MCP"
+description = "Catálogo, documentos e rascunhos de pedidos via REST e MCP"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "alembic>=1.15,<2",
@@ -14,13 +14,15 @@ dependencies = [
   "mcp>=1.26,<2",
   "pgvector>=0.4,<1",
   "psycopg[binary]>=3.2,<4",
+  "pypdf>=6,<7",
+  "python-multipart>=0.0.22,<1",
   "pydantic-settings>=2.8,<3",
   "sqlalchemy>=2.0,<3",
   "uvicorn>=0.34,<1",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "reportlab>=4,<5", "pypdf>=5,<7"]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "reportlab>=4,<5"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pedidos"]
