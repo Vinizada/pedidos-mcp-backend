@@ -1,159 +1,194 @@
-# Pedidos MCP Backend
+# Pedidos
 
-Backend acadêmico para um agente identificar produtos em pedidos PDF/TXT e preparar
-**rascunhos de pedidos**. Inclui catálogo sintético, busca híbrida, validação comercial
-e ferramentas MCP. A leitura de documentos, OCR, escolha/execução do LLM e avaliação
-do agente pertencem aos demais integrantes do grupo.
+Catálogo de produtos e clientes, recebimento de documentos e criação de rascunhos de pedidos. A aplicação reúne interface web, API REST, servidor MCP e PostgreSQL.
 
-## Iniciar com Docker
+O processamento dos documentos é integrado separadamente pelo grupo. Enviar um arquivo o disponibiliza para processamento; o pedido aparece quando o consumidor o cria pela API ou pelo MCP, informando o `documento_id` do upload.
 
-Pré-requisitos: Docker Engine/Desktop com Compose v2 e Python 3 para gerar `.env`.
-Não precisa instalar PostgreSQL, modelo generativo nem cadastrar chave de LLM.
+## Recursos
+
+- Produtos e clientes com pesquisa e paginação.
+- Upload de PDF/TXT e consulta dos pedidos vinculados.
+- Busca de produtos por EAN/SKU, texto e similaridade semântica.
+- Validação de cliente, preço, disponibilidade, unidade e quantidade.
+- Rascunhos transacionais, com proteção contra repetição concorrente.
+- Dados de demonstração: 100 produtos, 15 clientes e 20 documentos com gabaritos.
+
+**Rascunhos não confirmam compras e não reservam ou baixam estoque.**
+
+## 1. Pré-requisitos
+
+Instale [Git](https://git-scm.com/downloads) e [Docker Desktop](https://docs.docker.com/get-started/get-docker/) no Windows/macOS, ou Docker Engine com Compose v2 no Linux. Inicie o Docker antes de continuar. No Windows, use PowerShell e containers Linux.
+
+```bash
+git --version
+docker version
+docker compose version
+```
+
+**Não é necessário instalar Python, Node.js, PostgreSQL ou um modelo generativo na máquina.** A primeira execução precisa de internet para baixar imagens, dependências e o modelo de embeddings.
+
+O repositório é privado: cada colega precisa aceitar o convite de acesso. `Repository not found` normalmente significa falta desse acesso ou autenticação no GitHub com outra conta.
+
+## 2. Clonar e configurar
 
 ```bash
 git clone https://github.com/Vinizada/pedidos-mcp-backend.git
 cd pedidos-mcp-backend
-python3 scripts/configurar_env.py
+```
+
+Execute **um** dos comandos abaixo dentro da pasta clonada. Ele gera o `.env` com senha e chave aleatórias; uma configuração existente é preservada.
+
+**Windows — PowerShell:**
+
+```powershell
+docker run --rm --mount "type=bind,source=${PWD},target=/workspace" -w /workspace python:3.13-slim python scripts/configurar_env.py
+```
+
+**macOS ou Linux — terminal:**
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,source=${PWD},target=/workspace" -w /workspace python:3.13-slim python scripts/configurar_env.py
+```
+
+Se já tem Python 3, pode usar `python3 scripts/configurar_env.py` (Windows: `python scripts/configurar_env.py`). Nunca versione ou compartilhe o `.env`.
+
+## 3. Iniciar e abrir a aplicação
+
+```bash
 docker compose up --build -d
+docker compose ps
+```
+
+A primeira inicialização pode levar alguns minutos. O serviço `init` aplica migrações, popula o banco e indexa os produtos ativos. O backend inicia após essa etapa. Para acompanhar:
+
+```bash
 docker compose logs -f init
 ```
 
-No Windows, use `python` no lugar de `python3`. O repositório é privado: o proprietário
-precisa conceder acesso a cada integrante no GitHub.
+`Ctrl+C` encerra apenas a visualização dos logs. `init` terminar com **Exited (0)** é esperado; `backend` e `db` devem ficar **healthy**.
 
-O serviço `init` aplica migrações, insere 100 produtos/15 clientes e indexa 99 produtos
-ativos. A primeira execução baixa um modelo de embeddings multilíngue (~220 MB);
-as seguintes reutilizam o volume de cache. A API só inicia após o `init` terminar.
-Não há chamada a LLM externo; os pesos de embeddings são baixados do Hugging Face.
+Abra **[http://localhost:8000/interface](http://localhost:8000/interface)**. No editor de texto, abra `.env`, copie apenas o valor à direita de `API_TOKEN=` e cole em **Chave de acesso**. Não inclua aspas nem `Bearer`. A chave fica somente na memória da página; atualizar ou fechar a aba exige entrar novamente.
 
-- Documentação REST: <http://localhost:8000/docs> — clique em **Authorize** e informe
-  o valor de `API_TOKEN` do seu `.env`, sem o prefixo `Bearer`.
-- MCP Streamable HTTP: <http://localhost:8000/mcp> — configure o header
-  `Authorization: Bearer <API_TOKEN>`. Não é uma página para abrir no navegador.
-- Saúde: <http://localhost:8000/health/ready>.
-
-Cada colega que roda localmente tem banco e token próprios. Uma instância hospedada
-é necessária para compartilhar o mesmo banco. O PostgreSQL não publica porta no host;
-a API local escuta apenas em `127.0.0.1`.
-
-Para iniciar sem baixar embeddings, defina `SEARCH_MODE=lexical` no `.env` antes do
-`docker compose up`. Esse modo recupera dados por full-text/trigramas; o modo padrão
-`hybrid` combina essa busca com vetores reais do catálogo.
-
-## Contrato para integrar o agente
-
-| Ferramenta | Responsabilidade |
+| Endereço local | Finalidade |
 |---|---|
-| `buscar_produtos` | EAN/SKU exato ou candidatos por descrição |
-| `consultar_disponibilidade` | Preço vigente e estoque disponível |
-| `buscar_cliente` | Código ou nome de cliente |
-| `validar_carrinho` | Validar e calcular valores sem persistir |
-| `criar_pedido_rascunho` | Gravar rascunho com idempotência |
-| `consultar_pedido` | Recuperar pedido persistido |
+| `/interface` | Produtos, clientes, documentos e pedidos |
+| `/docs` | Documentação REST; use **Authorize** com a mesma chave |
+| `/health/ready` | Retorna `{"status":"ready"}` quando banco e armazenamento estão prontos |
+| `/mcp` | Endpoint Streamable HTTP; use um cliente MCP, não o navegador |
 
-Leia [os contratos e exemplos](docs/contratos-mcp.md), [os schemas JSON reais](contracts/mcp-tools.json)
-e [o modelo de dados](docs/modelo-dados.md). O recurso MCP `pedidos://politicas` contém
-as regras de uso. Não existe uma ferramenta de SQL livre ou de confirmação de compra.
+Cada instalação tem banco, arquivos e chave próprios. Os UUIDs do catálogo inicial são determinísticos; documentos e pedidos criados depois são locais.
 
-O agente deve pedir esclarecimento sobre marca/embalagem/unidade ambígua. Scores são
-ranking de recuperação, não probabilidade de identificação correta. Preço e total
-vêm do banco; rascunhos **não reservam nem baixam estoque**. A confirmação humana e
-a efetivação comercial são uma evolução futura, fora desta entrega.
+## 4. Experimentar as telas
 
-## Verificar a conexão sem um agente
+1. Em **Produtos**, pesquise `café`, `MER-001` ou um EAN e confira embalagem, preço e estoque.
+2. Em **Clientes**, pesquise por nome ou código, como `CLI-001`.
+3. Em **Documentos**, envie um arquivo de `data/pedidos/`.
+4. O arquivo fica **Aguardando processamento** até o consumidor externo produzir um pedido.
+5. Depois da criação, clique em **Atualizar** e abra o pedido vinculado. **Pedidos** também lista rascunhos criados sem documento.
 
-Instale Python 3.12/3.13 e [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8. O backend armazena o original, sem executar conteúdo, OCR ou extração de itens.
 
-```bash
-uv sync --frozen --no-editable
-uv run --frozen --no-editable python scripts/smoke_mcp.py
-```
+### Demonstração completa
 
-O cliente realiza handshake MCP, lista as seis ferramentas, identifica cliente/produto,
-valida, cria um rascunho e repete a operação. Deve retornar o mesmo pedido com estoque
-preservado. Ele cria **um rascunho sintético** com chave `smoke-mcp-v1` e não usa LLM.
-Para testar outra instância: acrescente `--url https://SEU-DOMINIO/mcp` e configure
-o token dessa instância em `API_TOKEN` no seu ambiente.
-
-## Testes do backend
+Com a aplicação rodando:
 
 ```bash
-docker compose --profile test up -d --wait test-db
-uv run --frozen --no-editable python scripts/testar.py
+docker compose exec backend python scripts/smoke_mcp.py --com-documento
 ```
 
-O script usa o banco descartável `pedidos_test` na porta 55433. Não roda avaliação
-de agente/LLM. Abrange validação, segurança HTTP, busca, preços, estoque, atomicidade,
-snapshots e idempotência. Dados de cada teste são revertidos; testes concorrentes
-usam chaves isoladas. `uv run --frozen --no-editable pytest` sem `TEST_DATABASE_URL`
-executa os testes locais e marca a integração PostgreSQL como ignorada.
+O comando envia um TXT, lê seu conteúdo pelo MCP e cria um pedido com itens conhecidos do catálogo. É uma verificação técnica determinística, **não uma interpretação automática do arquivo**. Deve mostrar `"status": "ok"`, `"idempotencia": "ok"` e `"estoque_preservado": true`.
+
+Clique em **Atualizar** na interface para ver o resultado. Cada execução com `--com-documento` cria um exemplo novo, identificado como demonstração. Sem essa opção, o script reutiliza um único rascunho para verificar a conexão MCP.
+
+## 5. Conectar o processamento
+
+- URL: `http://localhost:8000/mcp`.
+- Transporte: **Streamable HTTP**.
+- Header: `Authorization: Bearer <valor de API_TOKEN>`.
+- O cliente precisa aceitar headers próprios; este perfil não implementa OAuth.
+
+As ferramentas são `buscar_produtos`, `consultar_disponibilidade`, `buscar_cliente`, `validar_carrinho`, `criar_pedido_rascunho` e `consultar_pedido`. Os documentos estão disponíveis também como recursos MCP, inclusive o arquivo original.
+
+Leia [Integração e contratos](docs/contratos-mcp.md) e os [schemas JSON](contracts/mcp-tools.json), exportados diretamente do servidor.
+
+**Se o consumidor roda em outro container**, `localhost` aponta para esse container. Conecte-o à rede Docker `pedidos-mcp_default` e use `http://backend:8000/mcp`. Não é necessário publicar o backend na rede externa.
+
+## 6. Executar os testes
 
 ```bash
-uv run --frozen --no-editable ruff check .
-uv run --frozen --no-editable ruff format --check .
+docker compose --profile test run --build --rm tests
+docker compose --profile test stop test-db
 ```
 
-O modelo [docs/ci.github.yml](docs/ci.github.yml) executa a suíte com PostgreSQL real
-e constrói a imagem. A automação ainda não está ativa: a credencial usada para criar
-o repositório não possui a permissão GitHub `workflow`. Para ativar, copie o arquivo
-para `.github/workflows/ci.yml` usando uma credencial com essa permissão ou o editor
-do GitHub. A suíte já foi executada localmente contra PostgreSQL real.
+O comando constrói a imagem de testes e usa um PostgreSQL descartável separado. A suíte verifica contratos, integridade, uploads, autenticação, transações, preços, paginação e concorrência. O banco principal não é alterado. O resultado esperado é uma linha final `passed`, sem falhas.
 
-## Exemplos para os demais integrantes
+O perfil de testes não é iniciado pelo `docker compose up -d` normal. Não precisa instalar ferramentas de desenvolvimento para executá-lo.
 
-- `data/pedidos/`: 20 documentos (10 PDFs com texto selecionável e 10 TXTs).
-- `data/gabaritos/`: resultados esperados e manifesto; **não fornecer ao agente**.
-- `src/pedidos/fixtures.py`: fonte determinística do catálogo e clientes.
+## Operação diária
 
-Os exemplos cobrem EANs, descrições, sinônimos, ambiguidade, produto desconhecido,
-estoque zero, item inativo e quantidades inválidas. São sintéticos, não uma avaliação
-concluída. Os PDFs usam um layout comum e não cobrem imagens escaneadas/OCR; o grupo
-deve ampliar essa diversidade antes de afirmar robustez a layouts reais.
+| Ação | Comando |
+|---|---|
+| Iniciar novamente | `docker compose up -d` |
+| Ver estado | `docker compose ps -a` |
+| Ver erros recentes | `docker compose logs --tail 100 backend init` |
+| Parar preservando os dados | `docker compose down` |
+| Atualizar código | `git pull --ff-only`, depois `docker compose up --build -d` |
+| Reindexar catálogo alterado | `docker compose run --rm init python -m pedidos.index_catalog` |
 
-Para regenerar: `uv run --frozen --no-editable python scripts/gerar_exemplos.py`.
-O gerador produz arquivos determinísticos e mantém gabaritos separados. Emails usam
-`example.invalid`; EANs têm checksum válido demonstrativo, sem registro comercial GS1.
+Os volumes guardam **banco**, **arquivos enviados** e **cache do modelo**. Não use `docker compose down -v` para atualizar: ele apaga os volumes. O seed não sobrescreve preços ou estoques já alterados.
 
-## Operação e desenvolvimento
+### Configuração
 
-```bash
-docker compose ps
-docker compose logs --tail 100 backend
-docker compose run --rm init python -m pedidos.index_catalog
-docker compose down
+| Variável no `.env` | Uso |
+|---|---|
+| `API_TOKEN` | Chave compartilhada, com pelo menos 32 caracteres |
+| `POSTGRES_PASSWORD` | Senha inicial do banco; mantenha a gerada pelo script |
+| `APP_PORT` | Porta externa; padrão `8000` |
+| `SEARCH_MODE` | `hybrid`: texto + vetores; `lexical`: texto/trigramas |
+| `ALLOWED_HOSTS` | Hosts aceitos, em array JSON |
+| `ALLOWED_ORIGINS` | Origens de navegador aceitas, em array JSON |
+
+O modo `hybrid` baixa e executa localmente embeddings multilíngues (~220 MB), sem chave de serviço externo. Para começar sem esse download, altere `SEARCH_MODE=lexical` antes de iniciar. Ao voltar para `hybrid`, rode `docker compose run --rm init` e `docker compose up -d` para indexar e recriar o backend com a configuração atualizada.
+
+## Solução de problemas
+
+| Sintoma | O que conferir |
+|---|---|
+| Não conecta ao Docker daemon | Abra o Docker Desktop; `docker version` deve mostrar Client e Server. |
+| `API_TOKEN` ou senha obrigatória | Execute o gerador de `.env` na pasta do projeto. |
+| Porta 8000 ocupada | Mude `APP_PORT=8001`; adicione `http://localhost:8001` e `http://127.0.0.1:8001` a `ALLOWED_ORIGINS`; rode `docker compose up -d` e abra a porta nova. |
+| Porta de teste 55433 ocupada | Altere apenas a porta publicada de `test-db` no Compose, ou pare quem a ocupa. Os testes em container usam a porta interna 5432. |
+| `init` terminou com erro | Leia `docker compose logs --tail 100 init`; confira internet, disco e configuração. Corrija, rode `docker compose run --rm init` e `docker compose up -d`. |
+| Download do modelo falhou | Tente novamente com internet ou use `SEARCH_MODE=lexical`. |
+| `401` ou chave inválida | Use a chave desta instalação; após alterá-la, rode `docker compose up -d`. |
+| `403` ao usar outra porta | Atualize `ALLOWED_ORIGINS` para o endereço completo, incluindo protocolo e porta. |
+| `INDICE_INDISPONIVEL` | Reindexe e confira se `EMBEDDING_MODEL` é o mesmo do índice. |
+| Arquivo aguardando processamento | Upload não gera pedido sozinho. Integre o consumidor ou execute a demonstração. |
+| PDF/TXT rejeitado | Confira tamanho, estrutura, senha, páginas e codificação UTF-8. |
+| Banco não autentica após editar a senha | Alterar `.env` não muda a senha de um volume existente. Restaure o valor anterior ou altere a senha no PostgreSQL. |
+
+## Organização
+
+```text
+src/pedidos/
+  app.py                 Inicialização HTTP e rotas principais
+  dashboard_api.py       Listagens e operações de documentos
+  http_security.py       Autenticação, limites e cabeçalhos HTTP
+  service.py             Regras de catálogo e pedidos
+  document_service.py    Armazenamento e vínculo dos documentos
+  upload_validation.py   Validação estrutural de PDF/TXT
+  mcp_server.py          Ferramentas e recursos MCP
+  models.py / schemas.py Entidades relacionais e contratos tipados
+  db.py / config.py      Conexões e configuração
+  static/               Interface HTML, CSS e JavaScript
+migrations/             Evolução versionada do PostgreSQL
+tests/                  Testes unitários, integração e concorrência
+contracts/              Schemas MCP exportados
+data/pedidos/            Documentos de exemplo
+data/gabaritos/          Resultados esperados, separados do processamento
+scripts/                Configuração, demonstração e manutenção
 ```
 
-`down` preserva o banco e os modelos. **Não use `down -v` se quiser preservar os dados**.
-O seed é idempotente e não redefine preços/estoques já alterados. Depois de editar o
-catálogo, reindexe; em modo híbrido, um índice ausente/desatualizado retorna erro
-explícito, sem fingir que a busca semântica está funcionando.
+Veja [modelo de dados](docs/modelo-dados.md), [desenvolvimento](docs/desenvolvimento.md) e [revisão técnica](docs/revisao-tecnica.md). Os dados de demonstração são sintéticos; gabaritos não são servidos pela API/MCP e não devem ser enviados ao consumidor avaliado. Os PDFs de exemplo não cobrem OCR ou diversidade de layouts reais.
 
-Mudanças no esquema exigem nova migração em `migrations/versions/`. O intervalo de
-preços usa exclusão PostgreSQL para impedir vigências sobrepostas. Atualizações de
-contratos: `uv run --frozen --no-editable python scripts/exportar_contratos.py`.
-
-Dependências fixadas em `uv.lock`; o Docker usa `requirements.txt` com hashes.
-Ao atualizá-las, regenere ambos: `uv lock` e
-`uv export --frozen --no-dev --no-emit-project -o requirements.txt`.
-
-## Hospedagem
-
-Para sessões gratuitas de integração, há uma configuração de **GitHub Codespaces**.
-Leia [franquia, suspensão automática e acesso do grupo](docs/codespaces.md) antes de
-[criar o ambiente](https://github.com/codespaces/new?repo=Vinizada%2Fpedidos-mcp-backend).
-Não é hospedagem 24/7; o consumo deve ficar dentro da franquia gratuita da conta.
-
-Veja [o guia de implantação HTTPS](docs/hospedagem.md). O código está preparado para
-ser hospedado, mas o repositório GitHub por si só não executa a aplicação.
-
-Autenticação deste protótipo: segredo Bearer compartilhado para um grupo confiável.
-Não implementa OAuth, isolamento entre usuários, quotas ou auditoria de produção.
-Qualquer integrante com o token pode consultar os rascunhos da instância. Não usar
-dados reais de clientes neste ambiente acadêmico.
-
-## Referências técnicas
-
-- [SDK Python oficial do MCP, linha 1.x](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x)
-- [PostgreSQL + pgvector](https://github.com/pgvector/pgvector)
-- [Modelos suportados pelo FastEmbed](https://qdrant.github.io/fastembed/examples/Supported_Models/)
-- [Docker Compose](https://docs.docker.com/compose/gettingstarted/)
+[Codespaces](docs/codespaces.md) e [hospedagem](docs/hospedagem.md) ficam documentados para uma etapa posterior. O fluxo recomendado neste momento é local.
