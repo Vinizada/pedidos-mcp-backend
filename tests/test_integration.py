@@ -13,7 +13,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, delete, func, select
+from sqlalchemy import create_engine, delete, func, insert, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -316,3 +316,40 @@ def test_unknown_order_is_domain_error(service):
     with pytest.raises(DomainError) as raised:
         service.consultar_pedido(uuid4())
     assert raised.value.codigo == "PEDIDO_NAO_ENCONTRADO"
+
+
+def test_database_rejects_ean_with_invalid_check_digit(db):
+    product = db.scalars(select(Produto).order_by(Produto.sku)).first()
+    wrong_digit = str((int(product.ean[-1]) + 1) % 10)
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        product.ean = product.ean[:-1] + wrong_digit
+        db.flush()
+    assert raised.value.orig.diag.constraint_name == "ck_produtos_ean_checksum"
+
+
+def test_database_rejects_stock_for_unknown_product(db):
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        db.execute(insert(Estoque).values(produto_id=uuid4(), quantidade=10, reservado=0))
+    assert raised.value.orig.sqlstate == "23503"  # foreign_key_violation
+
+
+def test_database_prevents_deleting_referenced_product(db):
+    product = db.scalars(select(Produto).order_by(Produto.sku)).first()
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        db.execute(delete(Produto).where(Produto.id == product.id))
+    assert raised.value.orig.sqlstate == "23503"
+
+
+def test_database_rejects_reservation_above_total_stock(db):
+    stock = db.scalars(select(Estoque)).first()
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        stock.reservado = stock.quantidade + 1
+        db.flush()
+    assert raised.value.orig.diag.constraint_name == "ck_estoque_reservado"
+
+
+def test_database_prevents_duplicate_stock_row(db):
+    stock = db.scalars(select(Estoque)).first()
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        db.execute(insert(Estoque).values(produto_id=stock.produto_id, quantidade=1, reservado=0))
+    assert raised.value.orig.sqlstate == "23505"  # unique_violation (PK)

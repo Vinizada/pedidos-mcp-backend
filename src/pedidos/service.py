@@ -6,10 +6,20 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import func, or_, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from pedidos.config import Settings
-from pedidos.models import Cliente, Estoque, Pedido, PedidoItem, Preco, Produto, ProdutoEmbedding
+from pedidos.errors import DomainError
+from pedidos.models import (
+    Cliente,
+    Documento,
+    Estoque,
+    Pedido,
+    PedidoItem,
+    Preco,
+    Produto,
+    ProdutoEmbedding,
+)
 from pedidos.retrieval import content_hash, embed_texts
 from pedidos.schemas import (
     BuscaInput,
@@ -17,31 +27,20 @@ from pedidos.schemas import (
     Candidato,
     CarrinhoInput,
     CarrinhoOutput,
+    ClienteDetalhe,
     ClientesOutput,
     ClienteView,
     DisponibilidadeOutput,
     ItemCalculado,
+    ListagemInput,
+    Page,
     PedidoInput,
+    PedidoResumo,
     PedidoView,
     Problema,
     ProdutoIdsInput,
     ProdutoView,
 )
-
-
-class DomainError(Exception):
-    def __init__(self, codigo: str, mensagem: str, problemas: list[Problema] | None = None):
-        super().__init__(mensagem)
-        self.codigo = codigo
-        self.mensagem = mensagem
-        self.problemas = problemas or []
-
-    def as_dict(self):
-        return {
-            "codigo": self.codigo,
-            "mensagem": self.mensagem,
-            "problemas": [p.model_dump(mode="json") for p in self.problemas],
-        }
 
 
 class CatalogService:
@@ -260,6 +259,9 @@ class CatalogService:
 
     def criar_pedido_rascunho(self, entrada: PedidoInput) -> PedidoView:
         payload = entrada.model_dump(mode="json", exclude={"chave_idempotencia"})
+        # Compatibilidade com hashes de pedidos criados antes da migração de documentos.
+        if payload["documento_id"] is None:
+            payload.pop("documento_id")
         payload["itens"] = sorted(payload["itens"], key=lambda i: i["produto_id"])
         fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         lock = int.from_bytes(
@@ -278,6 +280,11 @@ class CatalogService:
                 result.repeticao_idempotente = True
                 self.session.commit()
                 return result
+            if (
+                entrada.documento_id is not None
+                and self.session.get(Documento, entrada.documento_id) is None
+            ):
+                raise DomainError("DOCUMENTO_NAO_ENCONTRADO", "Documento não encontrado.")
             validacao = self.validar_carrinho(entrada)
             if not validacao.valido:
                 raise DomainError(
@@ -292,6 +299,7 @@ class CatalogService:
                 chave_idempotencia=entrada.chave_idempotencia,
                 hash_requisicao=fingerprint,
                 referencia_documento=entrada.referencia_documento,
+                documento_id=entrada.documento_id,
             )
             self.session.add(pedido)
             self.session.flush()
@@ -307,7 +315,9 @@ class CatalogService:
             raise
 
     def consultar_pedido(self, pedido_id: UUID) -> PedidoView:
-        pedido = self.session.get(Pedido, pedido_id)
+        pedido = self.session.scalar(
+            select(Pedido).options(joinedload(Pedido.cliente)).where(Pedido.id == pedido_id)
+        )
         if pedido is None:
             raise DomainError("PEDIDO_NAO_ENCONTRADO", "Pedido não encontrado.")
         itens = self.session.scalars(
@@ -318,12 +328,95 @@ class CatalogService:
         return PedidoView(
             pedido_id=pedido.id,
             cliente_id=pedido.cliente_id,
+            cliente_nome=pedido.cliente.nome,
+            cliente_codigo=pedido.cliente.codigo,
             status=pedido.status,
             criado_em=pedido.criado_em,
             total=pedido.total,
             referencia_documento=pedido.referencia_documento,
+            documento_id=pedido.documento_id,
             itens=[
                 ItemCalculado(**{name: getattr(i, name) for name in ItemCalculado.model_fields})
                 for i in itens
             ],
+        )
+
+    def listar_produtos(self, entrada: ListagemInput) -> Page[ProdutoView]:
+        query = select(Produto)
+        if entrada.consulta:
+            content = Produto.nome + " " + Produto.sku + " " + Produto.ean + " " + Produto.marca
+            query = query.where(
+                func.strpos(
+                    func.lower(func.unaccent(content)), func.lower(func.unaccent(entrada.consulta))
+                )
+                > 0
+            )
+        total = self.session.scalar(select(func.count()).select_from(query.subquery()))
+        produtos = list(
+            self.session.scalars(
+                query.order_by(Produto.sku).limit(entrada.limit).offset(entrada.offset)
+            )
+        )
+        return Page(
+            items=list(self._views(produtos).values()),
+            total=total,
+            limit=entrada.limit,
+            offset=entrada.offset,
+        )
+
+    def listar_clientes(self, entrada: ListagemInput) -> Page[ClienteDetalhe]:
+        query = select(Cliente)
+        if entrada.consulta:
+            content = Cliente.nome + " " + Cliente.codigo
+            query = query.where(
+                func.strpos(
+                    func.lower(func.unaccent(content)), func.lower(func.unaccent(entrada.consulta))
+                )
+                > 0
+            )
+        total = self.session.scalar(select(func.count()).select_from(query.subquery()))
+        clientes = self.session.scalars(
+            query.order_by(Cliente.codigo).limit(entrada.limit).offset(entrada.offset)
+        )
+        return Page(
+            items=[
+                ClienteDetalhe(
+                    cliente_id=c.id, codigo=c.codigo, nome=c.nome, email=c.email, ativo=c.ativo
+                )
+                for c in clientes
+            ],
+            total=total,
+            limit=entrada.limit,
+            offset=entrada.offset,
+        )
+
+    def listar_pedidos(
+        self, entrada: ListagemInput, documento_id: UUID | None = None
+    ) -> Page[PedidoResumo]:
+        query = select(Pedido).options(joinedload(Pedido.cliente))
+        if documento_id is not None:
+            query = query.where(Pedido.documento_id == documento_id)
+        total = self.session.scalar(select(func.count()).select_from(query.subquery()))
+        pedidos = self.session.scalars(
+            query.order_by(Pedido.criado_em.desc(), Pedido.id.desc())
+            .limit(entrada.limit)
+            .offset(entrada.offset)
+        )
+        return Page(
+            items=[
+                PedidoResumo(
+                    pedido_id=p.id,
+                    cliente_id=p.cliente_id,
+                    cliente_nome=p.cliente.nome,
+                    cliente_codigo=p.cliente.codigo,
+                    documento_id=p.documento_id,
+                    status=p.status,
+                    total=p.total,
+                    criado_em=p.criado_em,
+                )
+                for p in pedidos
+            ],
+            total=total,
+            limit=entrada.limit,
+            offset=entrada.offset,
         )

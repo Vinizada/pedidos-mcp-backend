@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -16,7 +17,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -27,6 +28,7 @@ class Produto(Base):
     __tablename__ = "produtos"
     __table_args__ = (
         CheckConstraint("ean ~ '^[0-9]{13}$'", name="ck_produtos_ean_formato"),
+        CheckConstraint("ean13_valido(ean)", name="ck_produtos_ean_checksum"),
         CheckConstraint("unidade = 'UN'", name="ck_produtos_unidade"),
     )
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -81,15 +83,20 @@ class Pedido(Base):
     __table_args__ = (
         CheckConstraint("status = 'rascunho'", name="ck_pedido_status"),
         CheckConstraint("total > 0", name="ck_pedido_total"),
+        Index("ix_pedido_cabecalho_criado_em_id", "criado_em", "id"),
     )
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     cliente_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clientes.id"), index=True)
+    cliente: Mapped[Cliente] = relationship(lazy="raise")
     status: Mapped[str] = mapped_column(String(20), default="rascunho")
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     total: Mapped[Decimal] = mapped_column(Numeric(18, 2))
     chave_idempotencia: Mapped[str] = mapped_column(String(100), unique=True)
     hash_requisicao: Mapped[str] = mapped_column(String(64))
     referencia_documento: Mapped[str | None] = mapped_column(String(200))
+    documento_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documentos.id", ondelete="RESTRICT"), index=True
+    )
 
 
 class PedidoItem(Base):
@@ -102,7 +109,7 @@ class PedidoItem(Base):
     )
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedido_cabecalho.id"), index=True)
-    produto_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("produtos.id"))
+    produto_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("produtos.id"), index=True)
     ean: Mapped[str] = mapped_column(String(13))
     nome_produto: Mapped[str] = mapped_column(String(200))
     unidade: Mapped[str] = mapped_column(String(8))
@@ -121,3 +128,24 @@ class ProdutoEmbedding(Base):
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class Documento(Base):
+    __tablename__ = "documentos"
+    __table_args__ = (
+        CheckConstraint(
+            "tamanho_bytes > 0 AND tamanho_bytes <= 10485760", name="ck_documento_tamanho"
+        ),
+        CheckConstraint(
+            "content_type IN ('application/pdf', 'text/plain')", name="ck_documento_tipo"
+        ),
+        CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name="ck_documento_sha256"),
+        Index("ix_documentos_criado_em_id", "criado_em", "id"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nome_original: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(64))
+    tamanho_bytes: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    storage_key: Mapped[str] = mapped_column(String(40), unique=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

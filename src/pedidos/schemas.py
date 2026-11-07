@@ -40,6 +40,7 @@ class CarrinhoInput(Contract):
 class PedidoInput(CarrinhoInput):
     chave_idempotencia: str = Field(min_length=8, max_length=100, pattern=r"^[A-Za-z0-9._:-]+$")
     referencia_documento: str | None = Field(default=None, max_length=200)
+    documento_id: UUID | None = None
 
 
 Money = Annotated[Decimal, Field(max_digits=18, decimal_places=2)]
@@ -119,11 +120,14 @@ class CarrinhoOutput(Contract):
 class PedidoView(Contract):
     pedido_id: UUID
     cliente_id: UUID
+    cliente_nome: str
+    cliente_codigo: str
     status: Literal["rascunho"]
     criado_em: datetime
     moeda: Literal["BRL"] = "BRL"
     total: Money
     referencia_documento: str | None
+    documento_id: UUID | None = None
     itens: list[ItemCalculado]
     repeticao_idempotente: bool = False
     aviso: str = "Rascunho: não reserva nem baixa estoque; confirmação humana fora deste protótipo."
@@ -133,3 +137,42 @@ class ErrorOutput(Contract):
     codigo: str
     mensagem: str
     problemas: list[Problema] = Field(default_factory=list)
+
+
+class ListagemInput(Contract):
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0, le=100_000)
+    consulta: str = Field(default="", max_length=200)
+
+
+class Page[T](Contract):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
+
+
+class ClienteDetalhe(ClienteView):
+    email: str
+
+
+class PedidoResumo(Contract):
+    pedido_id: UUID
+    cliente_id: UUID
+    cliente_nome: str
+    cliente_codigo: str
+    documento_id: UUID | None
+    status: Literal["rascunho"]
+    total: Money
+    criado_em: datetime
+
+
+class DocumentoView(Contract):
+    documento_id: UUID
+    nome_original: str
+    content_type: Literal["application/pdf", "text/plain"]
+    tamanho_bytes: int
+    sha256: str
+    criado_em: datetime
+    status: Literal["aguardando_agente", "pedido_criado"]
+    pedidos: list[PedidoResumo]
