@@ -15,6 +15,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from pedidos.config import Settings
@@ -211,6 +212,22 @@ def test_future_price_does_not_count_as_current(service, db):
     price.inicio_vigencia = datetime.now(UTC) + timedelta(days=1)
     db.flush()
     assert_invalid(service.validar_carrinho(cart_input(order)), "SEM_PRECO")
+
+
+def test_database_rejects_overlapping_price_periods(db):
+    order = order_input(db)
+    product_id = order.itens[0].produto_id
+    with pytest.raises(IntegrityError) as raised, db.begin_nested():
+        db.add(
+            Preco(
+                produto_id=product_id,
+                valor=Decimal("9.99"),
+                inicio_vigencia=datetime.now(UTC),
+                fim_vigencia=None,
+            )
+        )
+        db.flush()
+    assert raised.value.orig.diag.constraint_name == "ex_precos_vigencia"
 
 
 def test_reserved_stock_is_not_available(service, db):

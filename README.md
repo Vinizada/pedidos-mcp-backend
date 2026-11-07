@@ -138,6 +138,11 @@ Ao atualizá-las, regenere ambos: `uv lock` e
 
 ## Hospedagem
 
+Para sessões gratuitas de integração, há uma configuração de **GitHub Codespaces**.
+Leia [franquia, suspensão automática e acesso do grupo](docs/codespaces.md) antes de
+[criar o ambiente](https://github.com/codespaces/new?repo=Vinizada%2Fpedidos-mcp-backend).
+Não é hospedagem 24/7; o consumo deve ficar dentro da franquia gratuita da conta.
+
 Veja [o guia de implantação HTTPS](docs/hospedagem.md). O código está preparado para
 ser hospedado, mas o repositório GitHub por si só não executa a aplicação.
 
