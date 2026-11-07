@@ -27,7 +27,7 @@ docker compose version
 
 **Não é necessário instalar Python, Node.js, PostgreSQL ou um modelo generativo na máquina.** A primeira execução precisa de internet para baixar imagens, dependências e o modelo de embeddings.
 
-O repositório é privado: cada colega precisa aceitar o convite de acesso. `Repository not found` normalmente significa falta desse acesso ou autenticação no GitHub com outra conta.
+O repositório é público: qualquer colega pode clonar o código sem convite ou autenticação no GitHub. Cada instalação gera suas próprias credenciais locais no passo seguinte.
 
 ## 2. Clonar e configurar
 

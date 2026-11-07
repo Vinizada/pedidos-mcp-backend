@@ -11,7 +11,7 @@ provisionada por este repositório.
    o consumo; é uma referência inicial para a demonstração, não capacidade garantida.
 2. Aponte o DNS de um domínio ao servidor; libere somente HTTPS/HTTP (443/80) e o
    acesso administrativo necessário. PostgreSQL continua na rede interna Docker.
-3. Clone o repositório privado e execute `python3 scripts/configurar_env.py`.
+3. Clone o repositório e execute `python3 scripts/configurar_env.py`.
 4. Configure no `.env`:
 
 ```dotenv
