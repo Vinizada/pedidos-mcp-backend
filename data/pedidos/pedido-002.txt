@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-002 | Data: 2026-11-07
+Cliente: CLI-002 - Mercearia Demonstrativa Beta
+
+Favor separar MER-004, 4 pacotes, e MER-007, 6 pacotes.

@@ -159,6 +159,11 @@ def test_client_code_lookup_returns_specific_client(service, db):
     assert result.clientes[0].cliente_id == client.id
 
 
+def test_client_search_treats_like_wildcards_as_literal_text(service):
+    assert service.buscar_cliente(BuscaInput(consulta="%%")).clientes == []
+    assert service.buscar_cliente(BuscaInput(consulta="__")).clientes == []
+
+
 def test_server_computes_prices_and_totals(service, db):
     order = order_input(db, products=2)
     result = service.validar_carrinho(cart_input(order))

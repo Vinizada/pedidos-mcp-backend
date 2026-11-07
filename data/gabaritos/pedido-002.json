@@ -1,0 +1,22 @@
+{
+  "titulo": "Reposição por código interno",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-004",
+      "ean": "2990000000040",
+      "quantidade": 4
+    },
+    {
+      "sku": "MER-007",
+      "ean": "2990000000071",
+      "quantidade": 6
+    }
+  ],
+  "notas": "O agente deve localizar os SKUs no catálogo antes de criar os itens.",
+  "cliente_codigo": "CLI-002",
+  "id": "pedido-002",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-002.txt"
+}

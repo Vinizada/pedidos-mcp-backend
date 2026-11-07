@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-012 | Data: 2026-11-07
+Cliente: CLI-012 - Minimercado Demonstrativo Mi
+
+Solicito 3 unidades do EAN 2990009999994.

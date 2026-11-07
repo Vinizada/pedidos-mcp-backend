@@ -1,0 +1,7 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-004 | Data: 2026-11-07
+Cliente: CLI-004 - Armazém Demonstrativo Delta
+
+6 un - det. neutro Casa Serena 500 ml
+2 un - sabão pó Casa Serena 800 g

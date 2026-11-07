@@ -1,0 +1,22 @@
+{
+  "titulo": "Sinônimos no pedido",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-052",
+      "ean": "2990000000521",
+      "quantidade": 5
+    },
+    {
+      "sku": "MER-017",
+      "ean": "2990000000170",
+      "quantidade": 3
+    }
+  ],
+  "notas": "Bolacha/biscoito e massa/macarrão são sinônimos presentes no índice textual.",
+  "cliente_codigo": "CLI-007",
+  "id": "pedido-007",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-007.pdf"
+}

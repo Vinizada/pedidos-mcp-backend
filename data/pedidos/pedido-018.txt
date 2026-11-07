@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-018 | Data: 2026-11-07
+Cliente: CLI-003 - Empório Demonstrativo Gama
+
+Enviar 2 caixas de leite integral Vale Branco de 1 litro.

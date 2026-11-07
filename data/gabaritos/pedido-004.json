@@ -1,0 +1,22 @@
+{
+  "titulo": "Lista abreviada",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-091",
+      "ean": "2990000000910",
+      "quantidade": 6
+    },
+    {
+      "sku": "MER-094",
+      "ean": "2990000000941",
+      "quantidade": 2
+    }
+  ],
+  "notas": "Recuperar descrições abreviadas com categoria e marca.",
+  "cliente_codigo": "CLI-004",
+  "id": "pedido-004",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-004.txt"
+}

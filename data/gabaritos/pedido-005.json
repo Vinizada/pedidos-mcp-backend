@@ -1,0 +1,17 @@
+{
+  "titulo": "Caixa fechada com código explícito",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-033",
+      "ean": "2990000000330",
+      "quantidade": 2
+    }
+  ],
+  "notas": "Quantidade 2 do SKU de caixa fechada; não converter para 24 unidades do SKU avulso.",
+  "cliente_codigo": "CLI-005",
+  "id": "pedido-005",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-005.pdf"
+}

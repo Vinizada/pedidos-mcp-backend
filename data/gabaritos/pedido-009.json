@@ -1,0 +1,27 @@
+{
+  "titulo": "Itens com descrições completas",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-074",
+      "ean": "2990000000743",
+      "quantidade": 3
+    },
+    {
+      "sku": "MER-060",
+      "ean": "2990000000606",
+      "quantidade": 2
+    },
+    {
+      "sku": "MER-055",
+      "ean": "2990000000552",
+      "quantidade": 4
+    }
+  ],
+  "notas": "Carrinho de três itens; nenhum item adicional deve ser incluído.",
+  "cliente_codigo": "CLI-009",
+  "id": "pedido-009",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-009.pdf"
+}

@@ -15,5 +15,6 @@ dist/
 tmp/
 output/
 .cache/
+backup*.sql
 # Enunciado fornecido pelo professor; não distribuir no repositório.
 Trabalho IA Generativa.pdf

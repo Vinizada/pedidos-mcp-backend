@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-020 | Data: 2026-11-07
+Cliente: CLI-005 - Cantina Demonstrativa Épsilon
+
+Gostaria de pedir o açúcar cristal Aurora de 1 kg, EAN 2990000000033. Aguardo retorno.

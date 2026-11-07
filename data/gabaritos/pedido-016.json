@@ -1,0 +1,11 @@
+{
+  "titulo": "Quantidade negativa",
+  "esperado": "rejeitar",
+  "itens": [],
+  "notas": "Pedido novo não representa devolução; quantidades negativas são inválidas.",
+  "cliente_codigo": "CLI-001",
+  "id": "pedido-016",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-016.txt"
+}

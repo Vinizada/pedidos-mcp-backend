@@ -1,0 +1,11 @@
+{
+  "titulo": "Cliente não cadastrado",
+  "cliente_codigo": "CLI-999",
+  "esperado": "pedir_esclarecimento",
+  "itens": [],
+  "notas": "Não inventar ID de cliente nem cadastrar automaticamente. Solicitar identificação/cadastro à pessoa responsável.",
+  "id": "pedido-019",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-019.pdf"
+}

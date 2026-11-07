@@ -1,0 +1,113 @@
+{
+  "versao": 1,
+  "aviso": "Dados fictícios. EANs com checksum válido, sem alegação de registro GS1. Gabaritos exclusivos para avaliação; não enviar ao agente.",
+  "catalogo": {
+    "produtos": 100,
+    "clientes": 15,
+    "sem_estoque": "MER-099",
+    "inativo": "MER-100"
+  },
+  "limites": "PDFs usam um único layout, com texto selecionável; não incluem OCR, documentos escaneados nem avaliação automática de modelos.",
+  "casos": [
+    {
+      "id": "pedido-001",
+      "documento": "pedidos/pedido-001.pdf",
+      "gabarito": "gabaritos/pedido-001.json"
+    },
+    {
+      "id": "pedido-002",
+      "documento": "pedidos/pedido-002.txt",
+      "gabarito": "gabaritos/pedido-002.json"
+    },
+    {
+      "id": "pedido-003",
+      "documento": "pedidos/pedido-003.pdf",
+      "gabarito": "gabaritos/pedido-003.json"
+    },
+    {
+      "id": "pedido-004",
+      "documento": "pedidos/pedido-004.txt",
+      "gabarito": "gabaritos/pedido-004.json"
+    },
+    {
+      "id": "pedido-005",
+      "documento": "pedidos/pedido-005.pdf",
+      "gabarito": "gabaritos/pedido-005.json"
+    },
+    {
+      "id": "pedido-006",
+      "documento": "pedidos/pedido-006.txt",
+      "gabarito": "gabaritos/pedido-006.json"
+    },
+    {
+      "id": "pedido-007",
+      "documento": "pedidos/pedido-007.pdf",
+      "gabarito": "gabaritos/pedido-007.json"
+    },
+    {
+      "id": "pedido-008",
+      "documento": "pedidos/pedido-008.txt",
+      "gabarito": "gabaritos/pedido-008.json"
+    },
+    {
+      "id": "pedido-009",
+      "documento": "pedidos/pedido-009.pdf",
+      "gabarito": "gabaritos/pedido-009.json"
+    },
+    {
+      "id": "pedido-010",
+      "documento": "pedidos/pedido-010.txt",
+      "gabarito": "gabaritos/pedido-010.json"
+    },
+    {
+      "id": "pedido-011",
+      "documento": "pedidos/pedido-011.pdf",
+      "gabarito": "gabaritos/pedido-011.json"
+    },
+    {
+      "id": "pedido-012",
+      "documento": "pedidos/pedido-012.txt",
+      "gabarito": "gabaritos/pedido-012.json"
+    },
+    {
+      "id": "pedido-013",
+      "documento": "pedidos/pedido-013.pdf",
+      "gabarito": "gabaritos/pedido-013.json"
+    },
+    {
+      "id": "pedido-014",
+      "documento": "pedidos/pedido-014.txt",
+      "gabarito": "gabaritos/pedido-014.json"
+    },
+    {
+      "id": "pedido-015",
+      "documento": "pedidos/pedido-015.pdf",
+      "gabarito": "gabaritos/pedido-015.json"
+    },
+    {
+      "id": "pedido-016",
+      "documento": "pedidos/pedido-016.txt",
+      "gabarito": "gabaritos/pedido-016.json"
+    },
+    {
+      "id": "pedido-017",
+      "documento": "pedidos/pedido-017.pdf",
+      "gabarito": "gabaritos/pedido-017.json"
+    },
+    {
+      "id": "pedido-018",
+      "documento": "pedidos/pedido-018.txt",
+      "gabarito": "gabaritos/pedido-018.json"
+    },
+    {
+      "id": "pedido-019",
+      "documento": "pedidos/pedido-019.pdf",
+      "gabarito": "gabaritos/pedido-019.json"
+    },
+    {
+      "id": "pedido-020",
+      "documento": "pedidos/pedido-020.txt",
+      "gabarito": "gabaritos/pedido-020.json"
+    }
+  ]
+}

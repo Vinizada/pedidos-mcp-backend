@@ -1,0 +1,15 @@
+{
+  "titulo": "Marca não especificada",
+  "esperado": "pedir_esclarecimento",
+  "itens": [],
+  "candidatos": [
+    "MER-001",
+    "MER-002"
+  ],
+  "notas": "Há pelo menos duas marcas compatíveis; não escolher arbitrariamente.",
+  "cliente_codigo": "CLI-011",
+  "id": "pedido-011",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-011.pdf"
+}

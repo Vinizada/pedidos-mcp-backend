@@ -1,0 +1,7 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-010 | Data: 2026-11-07
+Cliente: CLI-010 - Cozinha Demonstrativa Kapa
+
+1) Produto solicitado: EAN 2990000000477, quantidade 2 unidades.
+2) Outro item: EAN 2990000000491, quantidade 1 unidade.

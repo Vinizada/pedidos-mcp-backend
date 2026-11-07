@@ -1,0 +1,40 @@
+name: Backend CI
+on: [push, pull_request]
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.2-pg17
+        env:
+          POSTGRES_DB: pedidos_test
+          POSTGRES_USER: pedidos
+          POSTGRES_PASSWORD: pedidos_test_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pedidos -d pedidos_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://pedidos:pedidos_test_local@127.0.0.1:5432/pedidos_test
+      API_TOKEN: ci-only-token-not-for-deployment-00000000
+      SEARCH_MODE: lexical
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install uv==0.12.7
+      - run: uv sync --frozen --no-editable
+      - run: uv run --frozen --no-editable ruff check .
+      - run: uv run --frozen --no-editable ruff format --check .
+      - run: uv run --frozen --no-editable pytest -q
+      - name: Verify published MCP contracts
+        run: |
+          uv run --frozen --no-editable python scripts/exportar_contratos.py
+          git diff --exit-code -- contracts/mcp-tools.json
+      - run: docker build -t pedidos-mcp-backend:ci .

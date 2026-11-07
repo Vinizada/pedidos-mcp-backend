@@ -1,0 +1,11 @@
+{
+  "titulo": "Quantidade ausente",
+  "esperado": "pedir_esclarecimento",
+  "itens": [],
+  "notas": "Quantidade não informada; não assumir uma unidade.",
+  "cliente_codigo": "CLI-005",
+  "id": "pedido-020",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-020.txt"
+}

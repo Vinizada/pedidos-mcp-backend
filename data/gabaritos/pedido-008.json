@@ -1,0 +1,22 @@
+{
+  "titulo": "Orçamento com observações",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-071",
+      "ean": "2990000000712",
+      "quantidade": 12
+    },
+    {
+      "sku": "MER-098",
+      "ean": "2990000000989",
+      "quantidade": 4
+    }
+  ],
+  "notas": "A observação não autoriza confirmação ou baixa de estoque; preparar rascunho.",
+  "cliente_codigo": "CLI-008",
+  "id": "pedido-008",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-008.txt"
+}

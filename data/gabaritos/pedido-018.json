@@ -1,0 +1,15 @@
+{
+  "titulo": "Caixa sem definição de embalagem",
+  "esperado": "pedir_esclarecimento",
+  "itens": [],
+  "candidatos": [
+    "MER-031",
+    "MER-033"
+  ],
+  "notas": "Confirmar se são 2 caixinhas de 1 L ou 2 caixas fechadas com 12 caixinhas.",
+  "cliente_codigo": "CLI-003",
+  "id": "pedido-018",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-018.txt"
+}

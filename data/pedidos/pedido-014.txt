@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-014 | Data: 2026-11-07
+Cliente: CLI-014 - Distribuidora Demonstrativa Xi
+
+Preciso de 3 unidades da mistura para bolo Forno Bom de baunilha 400 g, EAN 2990000001009.

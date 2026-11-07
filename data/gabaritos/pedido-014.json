@@ -1,0 +1,11 @@
+{
+  "titulo": "Produto inativo",
+  "esperado": "rejeitar",
+  "itens": [],
+  "notas": "MER-100 está inativo; a identificação exata não permite vendê-lo.",
+  "cliente_codigo": "CLI-014",
+  "id": "pedido-014",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-014.txt"
+}

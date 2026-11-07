@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-006 | Data: 2026-11-07
+Cliente: CLI-006 - Café Demonstrativo Zeta
+
+Arroz branco tipo 1 Campo Claro: 2 pacotes de 5 kg e 7 pacotes de 1 kg.

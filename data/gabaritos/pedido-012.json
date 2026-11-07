@@ -1,0 +1,11 @@
+{
+  "titulo": "Código inexistente no catálogo",
+  "esperado": "rejeitar",
+  "itens": [],
+  "notas": "Checksum válido não implica existência no catálogo. Informar produto não encontrado e não criar pedido.",
+  "cliente_codigo": "CLI-012",
+  "id": "pedido-012",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-012.txt"
+}

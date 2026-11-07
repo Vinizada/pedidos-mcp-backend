@@ -1,0 +1,22 @@
+{
+  "titulo": "Pedido por EAN",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-001",
+      "ean": "2990000000019",
+      "quantidade": 10
+    },
+    {
+      "sku": "MER-003",
+      "ean": "2990000000033",
+      "quantidade": 5
+    }
+  ],
+  "notas": "Identificação exata por EAN; quantidade em unidades da embalagem cadastrada.",
+  "cliente_codigo": "CLI-001",
+  "id": "pedido-001",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-001.pdf"
+}

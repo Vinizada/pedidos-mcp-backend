@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 
 
 async def main(url: str):
@@ -19,7 +19,7 @@ async def main(url: str):
     async with httpx.AsyncClient(
         headers={"Authorization": f"Bearer {token}"}, timeout=120
     ) as client:
-        async with streamablehttp_client(url, http_client=client) as (read, write, _):
+        async with streamable_http_client(url, http_client=client) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 tools = await session.list_tools()

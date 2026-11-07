@@ -1,0 +1,22 @@
+{
+  "titulo": "Solicitação em linguagem natural",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-001",
+      "ean": "2990000000019",
+      "quantidade": 8
+    },
+    {
+      "sku": "MER-003",
+      "ean": "2990000000033",
+      "quantidade": 3
+    }
+  ],
+  "notas": "Marca, produto e tamanho permitem desambiguação.",
+  "cliente_codigo": "CLI-003",
+  "id": "pedido-003",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-003.pdf"
+}

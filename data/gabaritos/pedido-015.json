@@ -1,0 +1,11 @@
+{
+  "titulo": "Quantidade zero",
+  "esperado": "rejeitar",
+  "itens": [],
+  "notas": "Quantidade deve ser inteira e estritamente positiva; não corrigir silenciosamente.",
+  "cliente_codigo": "CLI-015",
+  "id": "pedido-015",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-015.pdf"
+}

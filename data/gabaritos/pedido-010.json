@@ -1,0 +1,22 @@
+{
+  "titulo": "Itens numerados",
+  "esperado": "criar_rascunho",
+  "itens": [
+    {
+      "sku": "MER-047",
+      "ean": "2990000000477",
+      "quantidade": 2
+    },
+    {
+      "sku": "MER-049",
+      "ean": "2990000000491",
+      "quantidade": 1
+    }
+  ],
+  "notas": "Os números da lista não são quantidades; identificar os produtos pelo EAN explícito.",
+  "cliente_codigo": "CLI-010",
+  "id": "pedido-010",
+  "formato": "txt",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-010.txt"
+}

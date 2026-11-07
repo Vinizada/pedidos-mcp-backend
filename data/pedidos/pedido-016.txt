@@ -1,0 +1,6 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-016 | Data: 2026-11-07
+Cliente: CLI-001 - Mercado Demonstrativo Alfa
+
+Pedido novo: EAN 2990000000088; quantidade -2 unidades.

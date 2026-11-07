@@ -1,0 +1,9 @@
+DOCUMENTO FICTÍCIO PARA TESTES
+Solicitação de orçamento
+Referência: pedido-008 | Data: 2026-11-07
+Cliente: CLI-008 - Restaurante Demonstrativo Teta
+
+Bom dia! Solicito orçamento para o próximo encontro.
+Quantidade: 12 | EAN: 2990000000712
+Quantidade: 4 | EAN: 2990000000989
+Entregar somente após nosso aceite. Obrigado!

@@ -1,0 +1,11 @@
+{
+  "titulo": "Fração de embalagem indivisível",
+  "esperado": "pedir_esclarecimento",
+  "itens": [],
+  "notas": "UN representa embalagem inteira. Não arredondar 1,5 para 1 ou 2; validação do backend deve rejeitar frações.",
+  "cliente_codigo": "CLI-002",
+  "id": "pedido-017",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-017.pdf"
+}

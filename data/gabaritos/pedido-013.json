@@ -1,0 +1,11 @@
+{
+  "titulo": "Produto sem estoque",
+  "esperado": "rejeitar",
+  "itens": [],
+  "notas": "MER-099 tem estoque zero no seed; não substituir por outro produto.",
+  "cliente_codigo": "CLI-013",
+  "id": "pedido-013",
+  "formato": "pdf",
+  "data": "2026-11-07",
+  "documento": "pedidos/pedido-013.pdf"
+}
