@@ -297,6 +297,22 @@ class Orquestrador:
             for a in verificacao.acionamentos
         ]
         registro["chamadas_ferramentas"] = len(etapa2.chamadas) if etapa2 else 0
+        # Decisão do modelo antes dos guardrails da Etapa 2: auditoria e avaliação.
+        registro["decisao_modelo"] = (
+            {
+                "decisao": etapa2.decisao.decisao,
+                "itens": [
+                    {
+                        "idx": i.item_extraido_idx,
+                        "decisao": i.decisao,
+                        "produto_id": str(i.produto_id) if i.produto_id else None,
+                    }
+                    for i in etapa2.decisao.itens
+                ],
+            }
+            if etapa2
+            else None
+        )
         return _Analise(
             resultado.decisao,
             pedido_id=pedido_id,
