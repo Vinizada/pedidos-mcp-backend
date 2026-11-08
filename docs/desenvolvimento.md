@@ -65,4 +65,4 @@ Backups devem incluir banco e volume de uploads. Catálogo e índice podem ser r
 
 ## Limites
 
-Chave compartilhada para grupo confiável, sem isolamento por usuário, OAuth ou confirmação comercial. Uploads não iniciam processamento. PDFs escaneados podem ser armazenados, mas OCR e extração pertencem ao consumidor. A validação estrutural não é antivírus.
+Chave compartilhada para grupo confiável, sem isolamento por usuário, OAuth ou confirmação comercial. Uploads não iniciam processamento no backend: a leitura e a extração ficam no agente (`src/extrator`), que roda em container separado e é testado com modelo simulado (ver [arquitetura](arquitetura.md)). A validação estrutural não é antivírus.
