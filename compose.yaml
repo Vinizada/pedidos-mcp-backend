@@ -55,6 +55,24 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  # Agente consumidor: só fala com o backend por MCP/REST. Sem credenciais do banco, sem
+  # volumes e sem data/ (gabaritos ficam fora da imagem pelo .dockerignore).
+  agente:
+    image: pedidos-mcp-backend:local
+    build: .
+    profiles: ["agente"]
+    command: ["python", "-m", "extrator.worker"]
+    environment:
+      MCP_URL: http://backend:8000/mcp
+      API_TOKEN: ${API_TOKEN:?Execute scripts/configurar_env.py}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-claude-sonnet-5-5}
+      LLM_EFFORT: ${LLM_EFFORT:-medium}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
   test-db:
     image: pgvector/pgvector:0.8.2-pg17
     profiles: ["test"]

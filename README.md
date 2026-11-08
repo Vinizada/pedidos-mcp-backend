@@ -7,7 +7,7 @@ O processamento dos documentos é integrado separadamente pelo grupo. Enviar um 
 ## Recursos
 
 - Produtos e clientes com pesquisa e paginação.
-- Upload de PDF/TXT e consulta dos pedidos vinculados.
+- Upload de PDF, TXT, PNG ou JPEG e consulta dos pedidos e análises vinculados.
 - Busca de produtos por EAN/SKU, texto e similaridade semântica.
 - Validação de cliente, preço, disponibilidade, unidade e quantidade.
 - Rascunhos transacionais, com proteção contra repetição concorrente.
@@ -86,7 +86,7 @@ Cada instalação tem banco, arquivos e chave próprios. Os UUIDs do catálogo i
 4. O arquivo fica **Aguardando processamento** até o consumidor externo produzir um pedido.
 5. Depois da criação, clique em **Atualizar** e abra o pedido vinculado. **Pedidos** também lista rascunhos criados sem documento.
 
-Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8. O backend armazena o original, sem executar conteúdo, OCR ou extração de itens.
+Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8; PNG ou JPEG conferidos pela assinatura. O backend armazena o original, sem executar conteúdo, OCR ou extração de itens. O resultado do processamento (rascunho, perguntas de esclarecimento ou motivo de rejeição) aparece nos detalhes do documento quando o consumidor o registra.
 
 ### Demonstração completa
 
@@ -107,7 +107,7 @@ Clique em **Atualizar** na interface para ver o resultado. Cada execução com `
 - Header: `Authorization: Bearer <valor de API_TOKEN>`.
 - O cliente precisa aceitar headers próprios; este perfil não implementa OAuth.
 
-As ferramentas são `buscar_produtos`, `consultar_disponibilidade`, `buscar_cliente`, `validar_carrinho`, `criar_pedido_rascunho` e `consultar_pedido`. Os documentos estão disponíveis também como recursos MCP, inclusive o arquivo original.
+As ferramentas são `buscar_produtos`, `consultar_disponibilidade`, `buscar_cliente`, `validar_carrinho`, `criar_pedido_rascunho`, `registrar_analise` e `consultar_pedido`. `criar_pedido_rascunho` e `registrar_analise` gravam dados e devem ser chamadas pelo código do consumidor, não oferecidas a um modelo generativo. Os documentos estão disponíveis também como recursos MCP, inclusive o arquivo original.
 
 Leia [Integração e contratos](docs/contratos-mcp.md) e os [schemas JSON](contracts/mcp-tools.json), exportados diretamente do servidor.
 
@@ -164,7 +164,7 @@ O modo `hybrid` baixa e executa localmente embeddings multilíngues (~220 MB), s
 | `403` ao usar outra porta | Atualize `ALLOWED_ORIGINS` para o endereço completo, incluindo protocolo e porta. |
 | `INDICE_INDISPONIVEL` | Reindexe e confira se `EMBEDDING_MODEL` é o mesmo do índice. |
 | Arquivo aguardando processamento | Upload não gera pedido sozinho. Integre o consumidor ou execute a demonstração. |
-| PDF/TXT rejeitado | Confira tamanho, estrutura, senha, páginas e codificação UTF-8. |
+| Arquivo rejeitado | Confira tamanho, estrutura, senha, páginas, codificação UTF-8 e se a extensão da imagem corresponde ao conteúdo. |
 | Banco não autentica após editar a senha | Alterar `.env` não muda a senha de um volume existente. Restaure o valor anterior ou altere a senha no PostgreSQL. |
 
 ## Organização
@@ -176,7 +176,9 @@ src/pedidos/
   http_security.py       Autenticação, limites e cabeçalhos HTTP
   service.py             Regras de catálogo e pedidos
   document_service.py    Armazenamento e vínculo dos documentos
-  upload_validation.py   Validação estrutural de PDF/TXT
+  upload_validation.py   Validação estrutural de PDF/TXT/PNG/JPEG
+  analise_service.py     Registro idempotente das análises do agente
+  privacidade.py         Mascaramento de dados pessoais em textos livres
   mcp_server.py          Ferramentas e recursos MCP
   models.py / schemas.py Entidades relacionais e contratos tipados
   db.py / config.py      Conexões e configuração

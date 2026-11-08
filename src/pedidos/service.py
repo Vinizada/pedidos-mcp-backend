@@ -8,9 +8,11 @@ from uuid import UUID
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session, joinedload
 
+from pedidos.analise_service import revisoes_por_pedido
 from pedidos.config import Settings
 from pedidos.errors import DomainError
 from pedidos.models import (
+    AnaliseDocumento,
     Cliente,
     Documento,
     Estoque,
@@ -325,6 +327,7 @@ class CatalogService:
             .where(PedidoItem.pedido_id == pedido_id)
             .order_by(PedidoItem.produto_id)
         )
+        motivos_revisao = revisoes_por_pedido(self.session, [pedido.id]).get(pedido.id, [])
         return PedidoView(
             pedido_id=pedido.id,
             cliente_id=pedido.cliente_id,
@@ -339,6 +342,8 @@ class CatalogService:
                 ItemCalculado(**{name: getattr(i, name) for name in ItemCalculado.model_fields})
                 for i in itens
             ],
+            revisao_obrigatoria=bool(motivos_revisao),
+            motivos_revisao=motivos_revisao,
         )
 
     def listar_produtos(self, entrada: ListagemInput) -> Page[ProdutoView]:
@@ -391,17 +396,29 @@ class CatalogService:
         )
 
     def listar_pedidos(
-        self, entrada: ListagemInput, documento_id: UUID | None = None
+        self,
+        entrada: ListagemInput,
+        documento_id: UUID | None = None,
+        revisao: bool | None = None,
     ) -> Page[PedidoResumo]:
         query = select(Pedido).options(joinedload(Pedido.cliente))
         if documento_id is not None:
             query = query.where(Pedido.documento_id == documento_id)
+        if revisao is not None:
+            marcados = select(AnaliseDocumento.pedido_id).where(
+                AnaliseDocumento.revisao_obrigatoria.is_(True),
+                AnaliseDocumento.pedido_id.is_not(None),
+            )
+            query = query.where(Pedido.id.in_(marcados) if revisao else Pedido.id.not_in(marcados))
         total = self.session.scalar(select(func.count()).select_from(query.subquery()))
-        pedidos = self.session.scalars(
-            query.order_by(Pedido.criado_em.desc(), Pedido.id.desc())
-            .limit(entrada.limit)
-            .offset(entrada.offset)
+        pedidos = list(
+            self.session.scalars(
+                query.order_by(Pedido.criado_em.desc(), Pedido.id.desc())
+                .limit(entrada.limit)
+                .offset(entrada.offset)
+            )
         )
+        revisoes = revisoes_por_pedido(self.session, [p.id for p in pedidos])
         return Page(
             items=[
                 PedidoResumo(
@@ -413,6 +430,8 @@ class CatalogService:
                     status=p.status,
                     total=p.total,
                     criado_em=p.criado_em,
+                    revisao_obrigatoria=p.id in revisoes,
+                    motivos_revisao=revisoes.get(p.id, []),
                 )
                 for p in pedidos
             ],

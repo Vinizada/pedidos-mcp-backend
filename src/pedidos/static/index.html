@@ -219,13 +219,13 @@
             <div>
               <label for="document-file">Arquivo do pedido</label>
               <p class="help" id="file-help">
-                Arquivos PDF ou TXT de até 10 MB.
+                Arquivos PDF, TXT, PNG ou JPEG de até 10 MB.
               </p>
               <input
                 type="file"
                 id="document-file"
                 name="arquivo"
-                accept=".pdf,.txt,application/pdf,text/plain"
+                accept=".pdf,.txt,.png,.jpg,.jpeg,application/pdf,text/plain,image/png,image/jpeg"
                 required
                 aria-describedby="file-help"
               />
@@ -235,9 +235,14 @@
             </button>
           </form>
           <div class="info-strip">
-            Os pedidos vinculados aparecerão abaixo após o processamento do
+            O resultado do processamento — pedido criado, perguntas de
+            esclarecimento ou motivo de rejeição — aparece nos detalhes do
             documento.
           </div>
+          <label class="review-filter">
+            <input type="checkbox" id="documentos-revisao" />
+            Mostrar só documentos com revisão obrigatória
+          </label>
           <div class="table-wrap">
             <table>
               <caption class="sr-only">
@@ -284,6 +289,10 @@
             Todos os pedidos são rascunhos. Eles não confirmam uma compra nem
             reservam ou baixam estoque.
           </div>
+          <label class="review-filter">
+            <input type="checkbox" id="pedidos-revisao" />
+            Mostrar só pedidos com revisão obrigatória
+          </label>
           <div class="table-wrap">
             <table>
               <caption class="sr-only">

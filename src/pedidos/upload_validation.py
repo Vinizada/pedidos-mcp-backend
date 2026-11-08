@@ -9,6 +9,8 @@ from pypdf.errors import PdfReadError
 from pedidos.errors import DomainError
 
 MAX_PDF_PAGES = 100
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+IMAGE_EXTENSIONS = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,8 +41,23 @@ def validate_upload(filename: str, content: bytes, max_bytes: int) -> ValidatedU
         if "\x00" in decoded or not decoded.strip():
             raise DomainError("ARQUIVO_INVALIDO", "O TXT precisa conter texto legível.")
         return ValidatedUpload(name, "text/plain", extension)
+    if extension in IMAGE_EXTENSIONS:
+        # Só a assinatura e a estrutura mínima: o backend não decodifica imagens.
+        media_type = IMAGE_EXTENSIONS[extension]
+        valid = (
+            content.startswith(PNG_SIGNATURE) and content[12:16] == b"IHDR"
+            if media_type == "image/png"
+            else content.startswith(b"\xff\xd8\xff")
+            and content.rstrip(b"\x00").endswith(b"\xff\xd9")
+        )
+        if not valid:
+            raise DomainError(
+                "ARQUIVO_INVALIDO", "A imagem está danificada ou não corresponde à extensão."
+            )
+        # Extensão de armazenamento canônica: storage_key comporta UUID + 4 caracteres.
+        return ValidatedUpload(name, media_type, ".jpg" if media_type == "image/jpeg" else ".png")
     if extension != ".pdf" or not content.startswith(b"%PDF-"):
-        raise DomainError("ARQUIVO_INVALIDO", "Envie um arquivo PDF ou TXT UTF-8.")
+        raise DomainError("ARQUIVO_INVALIDO", "Envie um arquivo PDF, TXT UTF-8, PNG ou JPEG.")
     try:
         reader = PdfReader(BytesIO(content), strict=True)
         if reader.is_encrypted:

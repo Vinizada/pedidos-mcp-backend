@@ -10,7 +10,10 @@
     selectedDocument: null,
     selectedOrder: null,
     pages: Object.fromEntries(
-      views.map((view) => [view, { offset: 0, limit: 20, query: "" }]),
+      views.map((view) => [
+        view,
+        { offset: 0, limit: 20, query: "", revisao: false },
+      ]),
     ),
     requests: new Map(),
   };
@@ -29,6 +32,31 @@
       ? dates.format(new Date(value))
       : "—";
   const shortId = (value) => String(value || "").slice(0, 8);
+  const reviewReasons = {
+    texto_nao_verificavel:
+      "Documento escaneado ou imagem: o texto não pôde ser conferido automaticamente",
+    casamento_por_descricao: "Itens identificados apenas pela descrição",
+    possivel_injecao: "O documento contém instruções direcionadas ao sistema",
+    extracao_suspeita: "Extração incompleta ou inconsistente",
+    total_acima_limite: "Total acima do limite de revisão",
+    quantidade_acima_limite: "Quantidade acima do limite de revisão",
+    decisao_rebaixada: "Uma verificação automática alterou a decisão do agente",
+  };
+  const decisions = {
+    criar_rascunho: "Rascunho criado",
+    pedir_esclarecimento: "Esclarecimento necessário",
+    rejeitar: "Pedido rejeitado",
+    falha: "Falha no processamento",
+  };
+  const fileTypes = {
+    "application/pdf": ["PDF", "Documento PDF"],
+    "text/plain": ["TXT", "Documento de texto"],
+    "image/png": ["PNG", "Imagem PNG"],
+    "image/jpeg": ["JPEG", "Imagem JPEG"],
+  };
+  const fileType = (type, long = false) =>
+    (fileTypes[type] || ["Arquivo", "Arquivo"])[long ? 1 : 0];
+  const reasonText = (code) => reviewReasons[code] || code;
   const size = (bytes) =>
     bytes >= 1024 * 1024
       ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -69,7 +97,8 @@
       byId(id).textContent = "Atualizar";
     }
     for (const view of views) {
-      state.pages[view] = { offset: 0, limit: 20, query: "" };
+      state.pages[view] = { offset: 0, limit: 20, query: "", revisao: false };
+      if (byId(`${view}-revisao`)) byId(`${view}-revisao`).checked = false;
       byId(`${view}-body`).replaceChildren();
       byId(`${view}-pagination`).replaceChildren();
       byId(`view-${view}`).removeAttribute("aria-busy");
@@ -171,6 +200,37 @@
     return node("span", label, `badge ${style}`);
   }
 
+  function reviewBadge(item) {
+    if (!item.revisao_obrigatoria) return null;
+    const element = badge("Revisão obrigatória", "review");
+    const reasons = (item.motivos_revisao || []).map(reasonText);
+    if (reasons.length) element.title = reasons.join("; ");
+    return element;
+  }
+
+  function withReview(content, item) {
+    const review = reviewBadge(item);
+    if (!review) return content;
+    const wrapper = node("div");
+    wrapper.append(content, review);
+    return wrapper;
+  }
+
+  function reviewStrip(item) {
+    if (!item.revisao_obrigatoria) return null;
+    const strip = node("div", null, "review-strip");
+    strip.append(node("strong", "Revisão obrigatória. "));
+    const reasons = (item.motivos_revisao || []).map(reasonText);
+    strip.append(
+      document.createTextNode(
+        reasons.length
+          ? `${reasons.join("; ")}.`
+          : "Confira os itens com atenção antes de usar este rascunho.",
+      ),
+    );
+    return strip;
+  }
+
   function button(label, callback, className = "button small secondary") {
     const element = node("button", label, className);
     element.type = "button";
@@ -253,16 +313,11 @@
       const row = node("tr");
       cell(
         row,
-        titleCell(
-          item.nome_original,
-          item.content_type === "application/pdf"
-            ? "Documento PDF"
-            : "Documento de texto",
-        ),
+        titleCell(item.nome_original, fileType(item.content_type, true)),
       );
       cell(row, date(item.criado_em));
       cell(row, size(item.tamanho_bytes));
-      cell(row, documentBadge(item.status));
+      cell(row, withReview(documentBadge(item.status), item));
       const open = button("Ver documento", () =>
         showDocument(item.documento_id),
       );
@@ -272,7 +327,13 @@
     },
     pedidos(item) {
       const row = node("tr");
-      cell(row, titleCell(`#${shortId(item.pedido_id)}`, "Rascunho", true));
+      cell(
+        row,
+        withReview(
+          titleCell(`#${shortId(item.pedido_id)}`, "Rascunho", true),
+          item,
+        ),
+      );
       cell(row, date(item.criado_em));
       cell(
         row,
@@ -290,9 +351,17 @@
   };
 
   function documentBadge(status) {
-    return status === "pedido_criado"
-      ? badge("Pedido criado", "success")
-      : badge("Aguardando processamento", "waiting");
+    const labels = {
+      pedido_criado: ["Pedido criado", "success"],
+      aguardando_esclarecimento: ["Aguardando esclarecimento", "waiting"],
+      rejeitado: ["Rejeitado", "danger"],
+      falha_processamento: ["Falha no processamento", "danger"],
+    };
+    const [label, style] = labels[status] || [
+      "Aguardando processamento",
+      "waiting",
+    ];
+    return badge(label, style);
   }
 
   async function loadPage(view, preloaded) {
@@ -310,6 +379,7 @@
         offset: page.offset,
       });
       if (page.query) query.set("consulta", page.query);
+      if (page.revisao) query.set("revisao", "true");
       const data =
         preloaded || (await api(`/api/${view}?${query}`, {}, `list-${view}`));
       if (!state.token) return;
@@ -320,10 +390,12 @@
       const messages = {
         produtos: "Nenhum produto encontrado. Tente outro nome, SKU ou EAN.",
         clientes: "Nenhum cliente encontrado. Confira o nome ou código.",
-        documentos:
-          "Nenhum documento enviado. Selecione um PDF ou TXT acima para começar.",
-        pedidos:
-          "Nenhum pedido criado. Os pedidos disponíveis aparecerão nesta seção.",
+        documentos: page.revisao
+          ? "Nenhum documento com revisão obrigatória."
+          : "Nenhum documento enviado. Selecione um PDF, TXT ou imagem acima para começar.",
+        pedidos: page.revisao
+          ? "Nenhum pedido com revisão obrigatória."
+          : "Nenhum pedido criado. Os pedidos disponíveis aparecerão nesta seção.",
       };
       body.replaceChildren(...data.items.map(renderers[view]));
       if (!data.items.length) emptyRow(body, columns[view], messages[view]);
@@ -405,6 +477,53 @@
     }
   }
 
+  function analysisPanel(analysis) {
+    const panel = node("div", null, "analysis-panel");
+    panel.append(node("h4", "Resultado do processamento"));
+    if (!analysis) {
+      panel.append(
+        node(
+          "p",
+          "Este documento ainda não foi processado. Atualize esta seção para conferir novos resultados.",
+          "empty-hint",
+        ),
+      );
+      return panel;
+    }
+    panel.append(
+      badge(
+        decisions[analysis.decisao] || analysis.decisao,
+        analysis.decisao === "criar_rascunho"
+          ? "success"
+          : analysis.decisao === "pedir_esclarecimento"
+            ? "waiting"
+            : "danger",
+      ),
+    );
+    if (analysis.perguntas?.length) {
+      panel.append(node("p", "Perguntas para o cliente:"));
+      const list = node("ul");
+      for (const question of analysis.perguntas)
+        list.append(node("li", question));
+      panel.append(list);
+    }
+    if (analysis.motivos?.length) {
+      panel.append(node("p", "Motivos registrados:"));
+      const list = node("ul");
+      for (const reason of analysis.motivos)
+        list.append(node("li", reason.mensagem));
+      panel.append(list);
+    }
+    panel.append(
+      node(
+        "p",
+        `Processado em ${date(analysis.criado_em)} · modelo ${analysis.modelo} · versão ${analysis.versao_prompt}`,
+        "help",
+      ),
+    );
+    return panel;
+  }
+
   async function showDocument(id, scroll = true) {
     if (!state.token) return;
     state.selectedDocument = id;
@@ -421,7 +540,12 @@
       const title = node("div");
       title.append(
         node("h3", item.nome_original),
-        node("p", "Arquivo recebido e disponível para processamento."),
+        node(
+          "p",
+          item.status === "aguardando_agente"
+            ? "Arquivo recebido e disponível para processamento."
+            : "Arquivo processado. Confira o resultado abaixo.",
+        ),
       );
       const download = button("Baixar arquivo", () =>
         downloadDocument(item, download),
@@ -455,23 +579,30 @@
           related.append(line);
         }
       }
-      root.replaceChildren(
+      const latest = item.analises?.[0];
+      const children = [
         heading,
         documentBadge(item.status),
+        reviewStrip({
+          revisao_obrigatoria: item.revisao_obrigatoria,
+          motivos_revisao: latest?.motivos_revisao,
+        }),
         node("div", null, "detail-spacer"),
         metadata([
           ["Enviado em", date(item.criado_em)],
           [
             "Formato e tamanho",
-            `${item.content_type === "application/pdf" ? "PDF" : "TXT"} · ${size(item.tamanho_bytes)}`,
+            `${fileType(item.content_type)} · ${size(item.tamanho_bytes)}`,
           ],
         ]),
+        analysisPanel(latest),
         related,
         technicalDetails([
           ["Identificador do documento", item.documento_id],
           ["SHA-256", item.sha256],
         ]),
-      );
+      ];
+      root.replaceChildren(...children.filter(Boolean));
       if (scroll) {
         root.focus({ preventScroll: true });
         root.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -544,8 +675,9 @@
         node("span", "Total do rascunho"),
         node("strong", money(item.total)),
       );
-      root.replaceChildren(
+      const children = [
         heading,
+        reviewStrip(item),
         metadata([
           ["Cliente", item.cliente_nome || "Cliente cadastrado"],
           ["Código do cliente", item.cliente_codigo || "—"],
@@ -567,7 +699,8 @@
           ["Identificador do cliente", item.cliente_id],
           ["Identificador do documento", item.documento_id || "Sem vínculo"],
         ]),
-      );
+      ];
+      root.replaceChildren(...children.filter(Boolean));
       if (scroll) {
         root.focus({ preventScroll: true });
         root.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -602,7 +735,12 @@
       byId("login-panel").hidden = true;
       byId("workspace").hidden = false;
       byId("logout").hidden = false;
-      state.pages.produtos = { offset: 0, limit: 20, query: "" };
+      state.pages.produtos = {
+        offset: 0,
+        limit: 20,
+        query: "",
+        revisao: false,
+      };
       byId("produtos-query").value = "";
       openView("produtos", false);
       await loadPage("produtos", products);
@@ -651,9 +789,13 @@
     const generation = state.generation;
     const input = byId("document-file");
     const file = input.files[0];
-    if (!file) return notice("Selecione um PDF ou TXT para enviar.", true);
-    if (!/\.(pdf|txt)$/i.test(file.name))
-      return notice("Formato não aceito. Escolha um arquivo PDF ou TXT.", true);
+    if (!file)
+      return notice("Selecione um PDF, TXT ou imagem para enviar.", true);
+    if (!/\.(pdf|txt|png|jpe?g)$/i.test(file.name))
+      return notice(
+        "Formato não aceito. Escolha um arquivo PDF, TXT, PNG ou JPEG.",
+        true,
+      );
     if (file.size === 0 || file.size > 10 * 1024 * 1024)
       return notice("O arquivo deve conter dados e ter no máximo 10 MB.", true);
     const form = new FormData();
@@ -705,6 +847,15 @@
         control.textContent = "Atualizar";
       }
     }
+  }
+
+  for (const view of ["documentos", "pedidos"]) {
+    byId(`${view}-revisao`).addEventListener("change", (event) => {
+      state.pages[view].revisao = event.target.checked;
+      state.pages[view].offset = 0;
+      notice("");
+      loadPage(view);
+    });
   }
 
   byId("refresh-documents").addEventListener("click", () =>

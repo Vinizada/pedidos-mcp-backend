@@ -13,6 +13,8 @@ erDiagram
     pedido_cabecalho ||--|{ pedido_itens : contem
     produtos ||--o{ pedido_itens : referencia
     documentos o|--o{ pedido_cabecalho : origina
+    documentos ||--o{ analises_documento : registra
+    pedido_cabecalho o|--o{ analises_documento : resulta
 ```
 
 | Tabela | Identificador e regras |
@@ -24,7 +26,8 @@ erDiagram
 | pedido_cabecalho | UUID; FK cliente; status rascunho; data UTC; total decimal; chave de idempotência única e hash do conteúdo |
 | pedido_itens | UUID; FK pedido/produto; uma linha por produto; quantidade inteira positiva; snapshots de EAN, nome, unidade, embalagem e preço |
 | produto_embeddings | PK/FK produto; vetor de 384 dimensões, modelo, hash do conteúdo e data; índice derivado reconstruível |
-| documentos | UUID; nome original, tipo, tamanho, SHA-256, chave física única e data; original guardado em volume persistente |
+| documentos | UUID; nome original, tipo (PDF, TXT, PNG ou JPEG), tamanho, SHA-256, chave física única e data; original guardado em volume persistente |
+| analises_documento | UUID; FK documento (RESTRICT) e pedido opcional; decisão, perguntas, motivos, extração (JSONB, sem texto bruto), modelo, versão de prompt, tokens, custo, latência, revisão obrigatória e guardrails acionados; chave de idempotência única e hash do conteúdo |
 
 ## Regras de negócio
 
@@ -47,7 +50,11 @@ erDiagram
 - `pedido_cabecalho.documento_id` é uma FK opcional com exclusão restrita. Um documento
   pode originar mais de um rascunho, por exemplo numa revisão; a chave de idempotência
   continua identificando uma operação. Rascunhos anteriores não exigem documento.
-- A situação do documento é derivada dos pedidos vinculados, evitando duplicar estado.
+- A situação do documento é derivada dos pedidos vinculados e, sem pedido, da análise mais
+  recente, evitando duplicar estado.
+- Análise com decisão `criar_rascunho` exige pedido do mesmo documento (CHECK de coerência no
+  banco e validação de vínculo no servidor); `pedir_esclarecimento` exige pergunta.
+- Textos livres das análises são gravados com CPF, CNPJ, telefone e e-mail mascarados.
 
 ## Integridade e índices
 

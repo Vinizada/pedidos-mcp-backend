@@ -71,6 +71,51 @@ def test_pdf_upload_preserves_original_bytes(documents):
     assert result.status == "aguardando_agente"
 
 
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + b"\x00" * 17 + b"IEND\xaeB`\x82"
+JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00" + b"\x00" * 32 + b"\xff\xd9"
+
+
+@pytest.mark.parametrize(
+    "filename, content, media_type, suffix",
+    [
+        ("foto.png", PNG, "image/png", ".png"),
+        ("foto.JPG", JPEG, "image/jpeg", ".jpg"),
+        ("scan.jpeg", JPEG + b"\x00\x00", "image/jpeg", ".jpg"),
+    ],
+)
+def test_image_upload_is_stored_with_verified_type(
+    documents, filename, content, media_type, suffix
+):
+    result = documents.criar(filename, content)
+    assert result.content_type == media_type
+    assert result.status == "aguardando_agente"
+    path = documents.caminho_arquivo(result.documento_id)
+    assert path.suffix == suffix
+    assert path.read_bytes() == content
+
+
+@pytest.mark.parametrize(
+    "filename, content",
+    [
+        ("foto.png", JPEG),
+        ("foto.jpg", PNG),
+        ("foto.png", b"\x89PNG\r\n\x1a\n"),
+        ("foto.jpg", b"\xff\xd8\xff\xe0 truncated"),
+        ("foto.jpeg", b"texto qualquer"),
+        ("foto.gif", b"GIF89a"),
+    ],
+)
+def test_fake_or_truncated_images_are_rejected_without_storage(
+    documents, db, tmp_path, filename, content
+):
+    before = document_count(db)
+    with pytest.raises(DomainError) as raised:
+        documents.criar(filename, content)
+    assert raised.value.codigo == "ARQUIVO_INVALIDO"
+    assert document_count(db) == before
+    assert not list(tmp_path.iterdir())
+
+
 @pytest.mark.parametrize("filename", ["../../../pedido.txt", r"..\..\pedido.txt"])
 def test_client_filename_cannot_choose_storage_path(documents, tmp_path, filename):
     result = documents.criar(filename, b"2 unidades de cafe")
@@ -373,10 +418,30 @@ def test_document_api_serves_pdf_as_attachment_with_verified_type(document_api):
     assert downloaded.headers["content-disposition"] == 'attachment; filename="orcamento.pdf"'
 
 
+def test_document_api_serves_image_as_attachment(document_api):
+    client, _ = document_api
+    uploaded = client.post(
+        "/api/documentos",
+        files={"arquivo": ("foto.png", PNG, "text/html")},
+        headers=authorization(),
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    assert uploaded.json()["content_type"] == "image/png"
+    downloaded = client.get(
+        f"/api/documentos/{uploaded.json()['documento_id']}/arquivo", headers=authorization()
+    )
+    assert downloaded.status_code == 200
+    assert downloaded.content == PNG
+    assert downloaded.headers["content-type"] == "image/png"
+    assert downloaded.headers["content-disposition"] == 'attachment; filename="foto.png"'
+    assert downloaded.headers["x-content-type-options"] == "nosniff"
+
+
 @pytest.mark.parametrize(
     "filename, content, mime",
     [
         ("pedido.html", b"<script>alert(1)</script>", "text/html"),
+        ("foto.png", b"<svg onload=alert(1)>", "image/png"),
         ("pedido.pdf", b"not a PDF", "application/pdf"),
         ("pedido.txt", b"", "text/plain"),
         ("pedido.txt", b"\xff\xfeinvalid utf8", "text/plain"),
