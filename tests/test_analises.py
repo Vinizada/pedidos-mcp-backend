@@ -1,5 +1,6 @@
 """Análises do agente: idempotência, coerência, status derivado e revisão, em PostgreSQL."""
 
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -311,3 +312,25 @@ def test_analyses_api_lists_history_and_requires_token(document_api, db):
     assert filtered.json()["total"] == 0
     missing = client.get(f"/api/documentos/{uuid4()}/analises", headers=authorization())
     assert missing.status_code == 404
+
+
+def test_daily_cost_sums_todays_analyses(documents, analises):
+    from datetime import UTC, datetime, timedelta
+
+    antes = analises.custo_do_dia()
+    documento = documents.criar("pedido.txt", b"pedido")
+    analises.registrar_analise(entrada(documento.documento_id, custo_estimado="0.012345"))
+    analises.registrar_analise(entrada(documento.documento_id, custo_estimado="0.000655"))
+    hoje = analises.custo_do_dia()
+    assert hoje.custo_estimado - antes.custo_estimado == Decimal("0.013000")
+    assert hoje.analises - antes.analises == 2
+    amanha = analises.custo_do_dia(datetime.now(UTC).date() + timedelta(days=1))
+    assert amanha.custo_estimado == 0 and amanha.analises == 0
+
+
+def test_daily_cost_api_requires_token(document_api, db):
+    client, _ = document_api
+    assert client.get("/api/analises/custo").status_code == 401
+    resposta = client.get("/api/analises/custo", headers=authorization())
+    assert resposta.status_code == 200
+    assert set(resposta.json()) == {"data", "custo_estimado", "analises"}

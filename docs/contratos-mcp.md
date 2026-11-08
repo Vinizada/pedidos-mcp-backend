@@ -92,6 +92,8 @@ decisão do agente (`guardrail`, `item_idx`, `decisao_original`, `decisao_final`
 REST: `GET /api/documentos/{documento_id}/analises` lista o histórico, da mais recente para a
 mais antiga. `GET /api/documentos?revisao=true` e `GET /api/pedidos?revisao=true` filtram pelo
 selo de revisão (da análise mais recente, no caso de documentos).
+`GET /api/analises/custo?data=AAAA-MM-DD` soma o custo estimado das análises do dia (UTC;
+padrão: hoje) e é usado pelo agente para respeitar o orçamento diário.
 
 ## Documentos enviados pela interface
 

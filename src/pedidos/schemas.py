@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -219,6 +219,12 @@ class AnaliseView(Contract):
     texto_verificavel: bool | None
     criado_em: datetime
     repeticao_idempotente: bool = False
+
+
+class CustoDiarioView(Contract):
+    data: date
+    custo_estimado: Decimal
+    analises: int
 
 
 class AnaliseResumo(Contract):

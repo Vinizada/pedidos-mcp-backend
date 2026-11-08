@@ -2,15 +2,23 @@
 
 import hashlib
 import json
+from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from pedidos.errors import CODIGOS_REJEICAO, DomainError
 from pedidos.models import AnaliseDocumento, Documento, Pedido
 from pedidos.privacidade import mascarar_pii, mascarar_pii_json
-from pedidos.schemas import AnaliseInput, AnaliseResumo, AnaliseView, MotivoAnalise
+from pedidos.schemas import (
+    AnaliseInput,
+    AnaliseResumo,
+    AnaliseView,
+    CustoDiarioView,
+    MotivoAnalise,
+)
 
 
 def analise_view(analise: AnaliseDocumento, repeticao: bool = False) -> AnaliseView:
@@ -156,6 +164,21 @@ class AnaliseService:
         except Exception:
             self.session.rollback()
             raise
+
+    def custo_do_dia(self, dia: date | None = None) -> CustoDiarioView:
+        """Custo estimado das análises registradas no dia (UTC), para o orçamento do agente."""
+        dia = dia or datetime.now(UTC).date()
+        inicio = datetime.combine(dia, time.min, tzinfo=UTC)
+        custo, quantidade = self.session.execute(
+            select(
+                func.coalesce(func.sum(AnaliseDocumento.custo_estimado), 0),
+                func.count(AnaliseDocumento.id),
+            ).where(
+                AnaliseDocumento.criado_em >= inicio,
+                AnaliseDocumento.criado_em < inicio + timedelta(days=1),
+            )
+        ).one()
+        return CustoDiarioView(data=dia, custo_estimado=Decimal(custo), analises=quantidade)
 
     def listar_por_documento(self, documento_id: UUID) -> list[AnaliseView]:
         if self.session.get(Documento, documento_id) is None:

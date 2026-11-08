@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -13,6 +14,7 @@ from pedidos.document_service import DocumentService
 from pedidos.schemas import (
     AnaliseView,
     ClienteDetalhe,
+    CustoDiarioView,
     DocumentoView,
     ListagemInput,
     Page,
@@ -64,6 +66,11 @@ def anexar_documento(session: DB, arquivo: UploadFile = File(...)):
         return DocumentService(session, settings).criar(arquivo.filename or "", content)
     finally:
         arquivo.file.close()
+
+
+@router.get("/analises/custo", response_model=CustoDiarioView, tags=["Documentos"])
+def custo_analises(session: DB, data: date | None = None):
+    return AnaliseService(session).custo_do_dia(data)
 
 
 @router.get("/documentos", response_model=Page[DocumentoView], tags=["Documentos"])
