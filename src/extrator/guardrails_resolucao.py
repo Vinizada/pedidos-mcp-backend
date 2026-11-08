@@ -60,6 +60,8 @@ class DecisaoItem:
     codigo: str | None = None
     mensagem: str | None = None
     por_descricao: bool = False
+    # Candidatos para a pessoa escolher quando o item precisa de esclarecimento.
+    opcoes: tuple[dict, ...] = ()
 
 
 @dataclass
@@ -71,6 +73,7 @@ class ResultadoResolucao:
     perguntas: list[str]
     motivos: list[dict[str, Any]]
     acionamentos: list[dict[str, Any]]
+    cliente_pergunta: str | None = None
 
     @property
     def casamento_por_descricao(self) -> bool:
@@ -141,9 +144,18 @@ def _rejeicao(item: ItemVerificado, codigo: str) -> DecisaoItem:
     return DecisaoItem(item.idx, "rejeitar", codigo=codigo, mensagem=_curto(mensagem))
 
 
-def _esclarecimento(item: ItemVerificado, codigo: str, pergunta: str | None) -> DecisaoItem:
+def _esclarecimento(
+    item: ItemVerificado, codigo: str, pergunta: str | None, opcoes: list[dict] | None = None
+) -> DecisaoItem:
     texto = pergunta or f"Confirme qual produto deseja para o item “{item.descricao}”."
-    return DecisaoItem(item.idx, "pedir_esclarecimento", codigo=codigo, mensagem=_curto(texto))
+    unicos = {str(o["produto_id"]): o for o in (opcoes or [])}
+    return DecisaoItem(
+        item.idx,
+        "pedir_esclarecimento",
+        codigo=codigo,
+        mensagem=_curto(texto),
+        opcoes=tuple(unicos.values()),
+    )
 
 
 def _opcoes(produtos: list[dict]) -> str:
@@ -182,7 +194,9 @@ class _Avaliador:
                 f"O produto encontrado ({escolhido['nome']}, {escolhido['embalagem']}) não "
                 f"confere com “{item.descricao}”. Confirme marca, tamanho e embalagem."
             )
-            return "atributos_conferidos", _esclarecimento(item, "ATRIBUTOS_DIVERGENTES", pergunta)
+            return "atributos_conferidos", _esclarecimento(
+                item, "ATRIBUTOS_DIVERGENTES", pergunta, passam
+            )
 
         def chave(c):
             return (cobertura(pedido, c), medida_no_nome(pedido, c))
@@ -196,7 +210,7 @@ class _Avaliador:
             pergunta = (
                 f"O item “{item.descricao}” corresponde a mais de um produto: {opcoes}. Qual deles?"
             )
-            return "ambiguidade", _esclarecimento(item, "AMBIGUIDADE", pergunta)
+            return "ambiguidade", _esclarecimento(item, "AMBIGUIDADE", pergunta, [*topo, escolhido])
         coletivos = [c for c in passam if produto_coletivo(c)]
         if pedido.coletiva_sem_contagem and coletivos and len(coletivos) < len(passam):
             opcoes = _opcoes(passam)
@@ -204,7 +218,7 @@ class _Avaliador:
                 f"Para “{item.descricao}” ({item.unidade_texto or 'caixas'}), confirme a "
                 f"embalagem: {opcoes}."
             )
-            return "ambiguidade", _esclarecimento(item, "AMBIGUIDADE_EMBALAGEM", pergunta)
+            return "ambiguidade", _esclarecimento(item, "AMBIGUIDADE_EMBALAGEM", pergunta, passam)
         return None
 
     def avaliar(self, item: ItemVerificado, mi: ItemDecidido) -> tuple[str | None, DecisaoItem]:
@@ -400,6 +414,7 @@ def aplicar_guardrails(decisao: DecisaoAgente | None, ctx: ContextoResolucao) ->
         perguntas=perguntas,
         motivos=motivos[:100],
         acionamentos=avaliador.acionamentos[:200],
+        cliente_pergunta=cliente_pergunta,
     )
 
 

@@ -18,7 +18,28 @@ from pedidos.schemas import (
     AnaliseView,
     CustoDiarioView,
     MotivoAnalise,
+    Pendencias,
 )
+
+
+def _pendencias_mascaradas(pendencias: Pendencias | None) -> dict | None:
+    """Mascara só os textos vindos do documento; IDs e dados do catálogo ficam intactos."""
+    if pendencias is None:
+        return None
+    dados = pendencias.model_dump(mode="json")
+    cliente = dados["cliente"]
+    for campo in ("codigo_documento", "nome_documento", "pergunta"):
+        if cliente.get(campo):
+            cliente[campo] = mascarar_pii(cliente[campo])
+    for item in dados["itens"]:
+        for campo in ("descricao", "quantidade_texto", "unidade_texto", "pergunta"):
+            if item.get(campo):
+                item[campo] = mascarar_pii(item[campo])
+    return dados
+
+
+def _pendencias(analise: AnaliseDocumento) -> Pendencias | None:
+    return Pendencias.model_validate(analise.pendencias) if analise.pendencias else None
 
 
 def analise_view(analise: AnaliseDocumento, repeticao: bool = False) -> AnaliseView:
@@ -41,6 +62,7 @@ def analise_view(analise: AnaliseDocumento, repeticao: bool = False) -> AnaliseV
         motivos_revisao=analise.motivos_revisao,
         guardrails_acionados=analise.guardrails_acionados,
         texto_verificavel=analise.texto_verificavel,
+        pendencias=_pendencias(analise),
         criado_em=analise.criado_em,
         repeticao_idempotente=repeticao,
     )
@@ -58,6 +80,7 @@ def analise_resumo(analise: AnaliseDocumento) -> AnaliseResumo:
         modelo=analise.modelo,
         versao_prompt=analise.versao_prompt,
         criado_em=analise.criado_em,
+        pendencias=_pendencias(analise),
     )
 
 
@@ -96,6 +119,8 @@ class AnaliseService:
                 self._inconsistente("O pedido informado não pertence a este documento.")
         if entrada.decisao == "pedir_esclarecimento" and not entrada.perguntas:
             self._inconsistente("Pedido de esclarecimento exige ao menos uma pergunta.")
+        if entrada.pendencias is not None and entrada.decisao != "pedir_esclarecimento":
+            self._inconsistente("Pendências só podem acompanhar um pedido de esclarecimento.")
         if entrada.decisao == "rejeitar" and not any(
             m.codigo in CODIGOS_REJEICAO for m in entrada.motivos
         ):
@@ -154,6 +179,7 @@ class AnaliseService:
                     g.model_dump(mode="json") for g in entrada.guardrails_acionados
                 ],
                 texto_verificavel=entrada.texto_verificavel,
+                pendencias=_pendencias_mascaradas(entrada.pendencias),
             )
             self.session.add(analise)
             self.session.flush()

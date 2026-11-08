@@ -166,6 +166,54 @@ class GuardrailAcionado(Contract):
     decisao_final: DecisaoAnalise
 
 
+class OpcaoProduto(Contract):
+    produto_id: UUID
+    sku: str = Field(max_length=40)
+    ean: str = Field(max_length=13)
+    nome: str = Field(max_length=200)
+    marca: str = Field(max_length=100)
+    embalagem: str = Field(max_length=200)
+    preco_unitario: Money | None = None
+    estoque_disponivel: int = 0
+
+
+class PendenciaItem(Contract):
+    """Item de um documento em esclarecimento, resolvido ou não pelo agente."""
+
+    item_idx: int = Field(ge=0, le=99, strict=True)
+    descricao: str = Field(max_length=300)
+    quantidade_texto: str | None = Field(default=None, max_length=60)
+    unidade_texto: str | None = Field(default=None, max_length=120)
+    situacao: Literal["resolvido", "pendente"]
+    codigo: str | None = Field(default=None, max_length=60)
+    pergunta: str | None = Field(default=None, max_length=500)
+    produto_id: UUID | None = None
+    quantidade: int | None = Field(default=None, gt=0, le=100_000, strict=True)
+    opcoes: list[OpcaoProduto] = Field(default_factory=list, max_length=20)
+
+
+class OpcaoCliente(Contract):
+    cliente_id: UUID
+    codigo: str = Field(max_length=40)
+    nome: str = Field(max_length=200)
+
+
+class PendenciaCliente(Contract):
+    situacao: Literal["resolvido", "pendente"]
+    cliente_id: UUID | None = None
+    codigo_documento: str | None = Field(default=None, max_length=60)
+    nome_documento: str | None = Field(default=None, max_length=200)
+    pergunta: str | None = Field(default=None, max_length=500)
+    opcoes: list[OpcaoCliente] = Field(default_factory=list, max_length=20)
+
+
+class Pendencias(Contract):
+    """Dados estruturados para uma pessoa resolver o esclarecimento na interface."""
+
+    cliente: PendenciaCliente
+    itens: list[PendenciaItem] = Field(default_factory=list, max_length=100)
+
+
 class AnaliseInput(Contract):
     """Resultado do processamento de um documento, registrado pelo consumidor."""
 
@@ -189,6 +237,7 @@ class AnaliseInput(Contract):
     motivos_revisao: list[Identificador] = Field(default_factory=list, max_length=20)
     guardrails_acionados: list[GuardrailAcionado] = Field(default_factory=list, max_length=200)
     texto_verificavel: bool | None = None
+    pendencias: Pendencias | None = None
 
     @field_validator("extracao")
     @classmethod
@@ -217,6 +266,7 @@ class AnaliseView(Contract):
     motivos_revisao: list[str]
     guardrails_acionados: list[GuardrailAcionado]
     texto_verificavel: bool | None
+    pendencias: Pendencias | None = None
     criado_em: datetime
     repeticao_idempotente: bool = False
 
@@ -238,6 +288,22 @@ class AnaliseResumo(Contract):
     modelo: str
     versao_prompt: str
     criado_em: datetime
+    pendencias: Pendencias | None = None
+
+
+class ItemResolvido(Contract):
+    item_idx: int | None = Field(default=None, ge=0, le=99, strict=True)
+    produto_id: UUID
+    quantidade: int = Field(gt=0, le=100_000, strict=True)
+
+
+class ResolucaoInput(Contract):
+    """Resolução humana de um esclarecimento: cliente, produtos e quantidades escolhidos."""
+
+    analise_id: UUID
+    cliente_id: UUID
+    itens: list[ItemResolvido] = Field(min_length=1, max_length=100)
+    observacao: str | None = Field(default=None, max_length=500)
 
 
 class Page[T](Contract):

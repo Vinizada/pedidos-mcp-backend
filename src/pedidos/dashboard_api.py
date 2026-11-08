@@ -11,6 +11,7 @@ from pedidos.analise_service import AnaliseService
 from pedidos.config import get_settings
 from pedidos.db import session_factory
 from pedidos.document_service import DocumentService
+from pedidos.resolucao_humana import ResolucaoService
 from pedidos.schemas import (
     AnaliseView,
     ClienteDetalhe,
@@ -19,7 +20,9 @@ from pedidos.schemas import (
     ListagemInput,
     Page,
     PedidoResumo,
+    PedidoView,
     ProdutoView,
+    ResolucaoInput,
 )
 from pedidos.service import CatalogService
 
@@ -97,6 +100,17 @@ def documento(documento_id: UUID, session: DB):
 )
 def analises_documento(documento_id: UUID, session: DB):
     return AnaliseService(session).listar_por_documento(documento_id)
+
+
+@router.post(
+    "/documentos/{documento_id}/resolucao",
+    response_model=PedidoView,
+    status_code=201,
+    tags=["Documentos"],
+)
+def resolver_esclarecimento(documento_id: UUID, entrada: ResolucaoInput, session: DB):
+    """Cria o rascunho a partir das escolhas de uma pessoa para um esclarecimento."""
+    return ResolucaoService(session, get_settings()).resolver(documento_id, entrada)
 
 
 @router.get("/documentos/{documento_id}/arquivo", tags=["Documentos"])

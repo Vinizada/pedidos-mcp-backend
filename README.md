@@ -85,7 +85,7 @@ Cada instalação tem banco, arquivos e chave próprios. Os UUIDs do catálogo i
 2. Em **Clientes**, pesquise por nome ou código, como `CLI-001`.
 3. Em **Documentos**, envie um arquivo de `data/pedidos/`.
 4. O arquivo fica **Aguardando processamento** até o agente (seção 5) ou outro consumidor registrar o resultado.
-5. Clique em **Atualizar** e abra o documento: o painel **Resultado do processamento** mostra o rascunho criado, as perguntas de esclarecimento ou o motivo da rejeição. O selo **Revisão obrigatória** indica rascunhos que pedem conferência prioritária; use o filtro acima das tabelas para listá-los. **Pedidos** também lista rascunhos criados sem documento.
+5. Clique em **Atualizar** e abra o documento: o painel **Resultado do processamento** mostra o rascunho criado, as perguntas de esclarecimento ou o motivo da rejeição. Em **Aguardando esclarecimento**, o formulário **Resolver esclarecimento** traz cliente, produtos sugeridos e quantidades: confirme com o cliente, ajuste (ou busque outro produto no catálogo) e clique em **Criar rascunho com esta resolução**. O selo **Revisão obrigatória** indica rascunhos que pedem conferência prioritária; use o filtro acima das tabelas para listá-los. **Pedidos** também lista rascunhos criados sem documento.
 
 Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8; PNG ou JPEG conferidos pela assinatura. O backend armazena o original sem executar seu conteúdo; a leitura e a extração ficam no agente.
 

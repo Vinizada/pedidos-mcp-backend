@@ -170,6 +170,10 @@ class AnaliseDocumento(Base):
             name="ck_analise_esclarecimento_pergunta",
         ),
         CheckConstraint(
+            "pendencias IS NULL OR decisao = 'pedir_esclarecimento'",
+            name="ck_analise_pendencias_esclarecimento",
+        ),
+        CheckConstraint(
             "tokens_entrada >= 0 AND tokens_saida >= 0 AND tokens_cache_leitura >= 0"
             " AND custo_estimado >= 0 AND latencia_ms >= 0",
             name="ck_analise_metricas",
@@ -200,6 +204,8 @@ class AnaliseDocumento(Base):
     motivos_revisao: Mapped[list] = mapped_column(JSONB, default=list)
     guardrails_acionados: Mapped[list] = mapped_column(JSONB, default=list)
     texto_verificavel: Mapped[bool | None] = mapped_column(Boolean)
+    # none_as_null: None vira NULL do SQL (não o JSON null), como exige o CHECK.
+    pendencias: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     # clock_timestamp: análises da mesma transação mantêm ordem cronológica distinta.
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.clock_timestamp()

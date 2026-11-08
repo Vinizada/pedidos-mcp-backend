@@ -58,7 +58,7 @@ Códigos: `CLIENTE_INVALIDO`, `PRODUTO_INEXISTENTE`, `PRODUTO_INATIVO`,
 `SEM_PRECO`, `ESTOQUE_INSUFICIENTE`, `CARRINHO_INVALIDO`,
 `IDEMPOTENCIA_CONFLITO`, `PEDIDO_NAO_ENCONTRADO`, `INDICE_INDISPONIVEL`,
 `DOCUMENTO_NAO_ENCONTRADO`, `ARQUIVO_INDISPONIVEL`, `ARQUIVO_INVALIDO`, `ARQUIVO_MUITO_GRANDE`,
-`ANALISE_INCONSISTENTE`. `QUANTIDADE_INVALIDA` é aceito apenas como motivo de rejeição em
+`ANALISE_INCONSISTENTE`, `RESOLUCAO_INVALIDA`. `QUANTIDADE_INVALIDA` é aceito apenas como motivo de rejeição em
 análises (quantidade zero ou negativa no documento).
 
 O recurso `pedidos://politicas` descreve regras de uso. Nenhuma ferramenta executa
@@ -88,6 +88,25 @@ documento, e é limitada a 64 KiB.
 `texto_nao_verificavel`, `casamento_por_descricao`) marcam o documento e o rascunho para
 conferência prioritária. `guardrails_acionados` registra cada verificação que alterou a
 decisão do agente (`guardrail`, `item_idx`, `decisao_original`, `decisao_final`).
+
+`pendencias` (só com `pedir_esclarecimento`) estrutura o que falta decidir, para uma pessoa
+resolver na interface: `cliente` (situação, cliente escolhido ou pergunta, opções de clientes)
+e `itens` (cada item extraído, `resolvido` com o produto escolhido ou `pendente` com código,
+pergunta, quantidade lida e até 20 opções de produto). Textos vindos do documento são
+mascarados; IDs e dados do catálogo, não.
+
+### Resolução humana
+
+`POST /api/documentos/{documento_id}/resolucao` (somente REST, **não** é ferramenta MCP: um
+agente não pode aprovar a própria pendência) recebe `analise_id`, `cliente_id`,
+`itens` (`produto_id`, `quantidade`, `item_idx` opcional) e `observacao`. Exige que a análise
+seja a mais recente do documento e um `pedir_esclarecimento`, e que o documento não tenha
+outro pedido; senão retorna `RESOLUCAO_INVALIDA` (409). O carrinho passa pelas validações
+normais (`CARRINHO_INVALIDO`, 422, com os problemas); produtos repetidos são somados. Em caso
+de sucesso cria o rascunho com chave `humano:<analise_id>` e registra uma análise
+`criar_rascunho` com modelo `humano` e motivo `RESOLUCAO_HUMANA`; o documento passa a
+`pedido_criado`. Repetir a mesma requisição devolve o mesmo pedido; mudar o conteúdo gera
+`IDEMPOTENCIA_CONFLITO`.
 
 REST: `GET /api/documentos/{documento_id}/analises` lista o histórico, da mais recente para a
 mais antiga. `GET /api/documentos?revisao=true` e `GET /api/pedidos?revisao=true` filtram pelo

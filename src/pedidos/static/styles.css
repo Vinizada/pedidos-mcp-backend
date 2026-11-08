@@ -465,6 +465,59 @@ th.numeric {
   color: #7a4b00;
   margin-left: 6px;
 }
+.resolution-form {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+.resolution-form h4 {
+  margin: 0;
+}
+.resolution-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.resolution-item legend {
+  font-weight: 600;
+  padding: 0 4px;
+  overflow-wrap: anywhere;
+}
+.resolution-item p {
+  margin: 0;
+}
+.resolution-question {
+  background: #fff8e8;
+  border-radius: 6px;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+}
+.resolution-form select,
+.resolution-form input[type="number"],
+.resolution-form input[type="search"],
+.resolution-form textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+}
+.resolution-search {
+  display: flex;
+  gap: 6px;
+}
+.resolution-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .review-filter {
   display: flex;
   align-items: center;

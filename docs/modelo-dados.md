@@ -27,7 +27,7 @@ erDiagram
 | pedido_itens | UUID; FK pedido/produto; uma linha por produto; quantidade inteira positiva; snapshots de EAN, nome, unidade, embalagem e preço |
 | produto_embeddings | PK/FK produto; vetor de 384 dimensões, modelo, hash do conteúdo e data; índice derivado reconstruível |
 | documentos | UUID; nome original, tipo (PDF, TXT, PNG ou JPEG), tamanho, SHA-256, chave física única e data; original guardado em volume persistente |
-| analises_documento | UUID; FK documento (RESTRICT) e pedido opcional; decisão, perguntas, motivos, extração (JSONB, sem texto bruto), modelo, versão de prompt, tokens, custo, latência, revisão obrigatória e guardrails acionados; chave de idempotência única e hash do conteúdo |
+| analises_documento | UUID; FK documento (RESTRICT) e pedido opcional; decisão, perguntas, motivos, extração (JSONB, sem texto bruto), modelo, versão de prompt, tokens, custo, latência, revisão obrigatória, guardrails acionados e pendências estruturadas (JSONB, só em esclarecimentos); chave de idempotência única e hash do conteúdo |
 
 ## Regras de negócio
 
@@ -55,6 +55,8 @@ erDiagram
 - Análise com decisão `criar_rascunho` exige pedido do mesmo documento (CHECK de coerência no
   banco e validação de vínculo no servidor); `pedir_esclarecimento` exige pergunta.
 - Textos livres das análises são gravados com CPF, CNPJ, telefone e e-mail mascarados.
+- Um esclarecimento resolvido por uma pessoa gera um rascunho (chave `humano:<analise_id>`) e
+  uma nova análise `criar_rascunho` com modelo `humano`; a análise original é preservada.
 
 ## Integridade e índices
 

@@ -19,15 +19,18 @@ from uuid import UUID
 from extrator.config import AgenteSettings
 from extrator.custos import ContadorCusto, OrcamentoExcedido
 from extrator.extracao import extrair_pedido
-from extrator.guardrails_extracao import verificar_extracao
+from extrator.guardrails_extracao import ItemVerificado, verificar_extracao
 from extrator.guardrails_resolucao import (
     ContextoResolucao,
+    RegistroChamada,
+    ResultadoResolucao,
     aplicar_guardrails,
     rebaixar_por_revalidacao,
 )
 from extrator.ingestao import DocumentoRecusado, LimitesIngestao, preparar_documento
 from extrator.llm import ClienteLLM, ErroLLM
 from extrator.mcp_cliente import ClienteMCP, DocumentoCorrompido, ErroFerramenta, ErroMCP
+from extrator.pendencias import montar_pendencias
 from extrator.resolucao import LimiteVoltas, resolver
 from extrator.revisao import motivos_revisao
 from pedidos.schemas import MAX_EXTRACAO_BYTES
@@ -67,6 +70,7 @@ class _Analise:
     motivos_revisao: list[str] = field(default_factory=list)
     acionamentos: list[dict[str, Any]] = field(default_factory=list)
     texto_verificavel: bool | None = None
+    pendencias: dict[str, Any] | None = None
 
 
 def _codigo(texto: str | None, padrao: str) -> str:
@@ -207,6 +211,7 @@ class Orquestrador:
             "motivos_revisao": analise.motivos_revisao,
             "guardrails_acionados": analise.acionamentos[:200],
             "texto_verificavel": analise.texto_verificavel,
+            "pendencias": analise.pendencias,
         }
 
     async def _analisar(
@@ -291,6 +296,16 @@ class Orquestrador:
                 resultado = rebaixar_por_revalidacao(resultado, exc.problemas)
                 revisao = []
 
+        pendencias = None
+        if resultado.decisao == "pedir_esclarecimento" and verificacao.itens:
+            chamadas = list(etapa2.chamadas if etapa2 else [])
+            chamadas += await self._buscas_complementares(
+                resultado, verificacao.itens, pedido.cliente_codigo, pedido.cliente_nome, chamadas
+            )
+            pendencias = montar_pendencias(
+                resultado, verificacao.itens, pedido.cliente_codigo, pedido.cliente_nome, chamadas
+            )
+
         registro = verificacao.registro(pedido)
         registro["acionamentos_extracao"] = [
             {"guardrail": a.guardrail, "item_idx": a.item_idx, "efeito": a.efeito}
@@ -322,7 +337,50 @@ class Orquestrador:
             motivos_revisao=revisao,
             acionamentos=resultado.acionamentos,
             texto_verificavel=preparado.texto_verificavel,
+            pendencias=pendencias,
         )
+
+    async def _ler(self, ferramenta: str, consulta: str) -> dict[str, Any] | None:
+        try:
+            return await self.mcp.chamar(
+                ferramenta, {"entrada": {"consulta": consulta[:300], "limite": 5}}
+            )
+        except ErroFerramenta:
+            return None
+
+    async def _buscas_complementares(
+        self,
+        resultado: ResultadoResolucao,
+        itens: list[ItemVerificado],
+        cliente_codigo: str | None,
+        cliente_nome: str | None,
+        chamadas: list[RegistroChamada],
+    ) -> list[RegistroChamada]:
+        """Buscas de leitura, sem modelo, para sugerir opções que a Etapa 2 não trouxe."""
+        extras = []
+        com_candidatos = {
+            c.alvo
+            for c in chamadas
+            if c.ferramenta == "buscar_produtos" and (c.resultado or {}).get("candidatos")
+        }
+        verificados = {item.idx: item for item in itens}
+        for final in resultado.itens:
+            item = verificados[final.idx]
+            codigo = item.ean or item.sku
+            if final.decisao != "criar_rascunho" and final.idx not in com_candidatos and codigo:
+                encontrado = await self._ler("buscar_produtos", codigo)
+                if encontrado:
+                    extras.append(
+                        RegistroChamada("buscar_produtos", final.idx, {}, resultado=encontrado)
+                    )
+        consulta = (cliente_codigo or cliente_nome or "").strip()
+        if len(consulta) >= 2 and not any(c.ferramenta == "buscar_cliente" for c in chamadas):
+            encontrado = await self._ler("buscar_cliente", consulta)
+            if encontrado:
+                extras.append(
+                    RegistroChamada("buscar_cliente", "cliente", {}, resultado=encontrado)
+                )
+        return extras
 
 
 async def processar_documento(

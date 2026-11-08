@@ -1101,6 +1101,17 @@
                 ],
                 "default": null,
                 "title": "Texto Verificavel"
+              },
+              "pendencias": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Pendencias"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
               }
             },
             "required": [
@@ -1202,6 +1213,317 @@
               "mensagem"
             ],
             "title": "MotivoAnalise",
+            "type": "object"
+          },
+          "OpcaoCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "codigo": {
+                "maxLength": 40,
+                "title": "Codigo",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "codigo",
+              "nome"
+            ],
+            "title": "OpcaoCliente",
+            "type": "object"
+          },
+          "OpcaoProduto": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "maxLength": 40,
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "maxLength": 13,
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "maxLength": 100,
+                "title": "Marca",
+                "type": "string"
+              },
+              "embalagem": {
+                "maxLength": 200,
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "default": 0,
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "embalagem"
+            ],
+            "title": "OpcaoProduto",
+            "type": "object"
+          },
+          "PendenciaCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "cliente_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Cliente Id"
+              },
+              "codigo_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo Documento"
+              },
+              "nome_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Nome Documento"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoCliente"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "situacao"
+            ],
+            "title": "PendenciaCliente",
+            "type": "object"
+          },
+          "PendenciaItem": {
+            "additionalProperties": false,
+            "description": "Item de um documento em esclarecimento, resolvido ou não pelo agente.",
+            "properties": {
+              "item_idx": {
+                "maximum": 99,
+                "minimum": 0,
+                "title": "Item Idx",
+                "type": "integer"
+              },
+              "descricao": {
+                "maxLength": 300,
+                "title": "Descricao",
+                "type": "string"
+              },
+              "quantidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade Texto"
+              },
+              "unidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unidade Texto"
+              },
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "codigo": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "produto_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Produto Id"
+              },
+              "quantidade": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoProduto"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "item_idx",
+              "descricao",
+              "situacao"
+            ],
+            "title": "PendenciaItem",
+            "type": "object"
+          },
+          "Pendencias": {
+            "additionalProperties": false,
+            "description": "Dados estruturados para uma pessoa resolver o esclarecimento na interface.",
+            "properties": {
+              "cliente": {
+                "$ref": "#/$defs/PendenciaCliente"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/PendenciaItem"
+                },
+                "maxItems": 100,
+                "title": "Itens",
+                "type": "array"
+              }
+            },
+            "required": [
+              "cliente"
+            ],
+            "title": "Pendencias",
             "type": "object"
           }
         },
@@ -1307,6 +1629,317 @@
               "mensagem"
             ],
             "title": "MotivoAnalise",
+            "type": "object"
+          },
+          "OpcaoCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "codigo": {
+                "maxLength": 40,
+                "title": "Codigo",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "codigo",
+              "nome"
+            ],
+            "title": "OpcaoCliente",
+            "type": "object"
+          },
+          "OpcaoProduto": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "maxLength": 40,
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "maxLength": 13,
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "maxLength": 100,
+                "title": "Marca",
+                "type": "string"
+              },
+              "embalagem": {
+                "maxLength": 200,
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "default": 0,
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "embalagem"
+            ],
+            "title": "OpcaoProduto",
+            "type": "object"
+          },
+          "PendenciaCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "cliente_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Cliente Id"
+              },
+              "codigo_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo Documento"
+              },
+              "nome_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Nome Documento"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoCliente"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "situacao"
+            ],
+            "title": "PendenciaCliente",
+            "type": "object"
+          },
+          "PendenciaItem": {
+            "additionalProperties": false,
+            "description": "Item de um documento em esclarecimento, resolvido ou não pelo agente.",
+            "properties": {
+              "item_idx": {
+                "maximum": 99,
+                "minimum": 0,
+                "title": "Item Idx",
+                "type": "integer"
+              },
+              "descricao": {
+                "maxLength": 300,
+                "title": "Descricao",
+                "type": "string"
+              },
+              "quantidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade Texto"
+              },
+              "unidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unidade Texto"
+              },
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "codigo": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "produto_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Produto Id"
+              },
+              "quantidade": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoProduto"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "item_idx",
+              "descricao",
+              "situacao"
+            ],
+            "title": "PendenciaItem",
+            "type": "object"
+          },
+          "Pendencias": {
+            "additionalProperties": false,
+            "description": "Dados estruturados para uma pessoa resolver o esclarecimento na interface.",
+            "properties": {
+              "cliente": {
+                "$ref": "#/$defs/PendenciaCliente"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/PendenciaItem"
+                },
+                "maxItems": 100,
+                "title": "Itens",
+                "type": "array"
+              }
+            },
+            "required": [
+              "cliente"
+            ],
+            "title": "Pendencias",
             "type": "object"
           }
         },
@@ -1433,6 +2066,17 @@
               }
             ],
             "title": "Texto Verificavel"
+          },
+          "pendencias": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Pendencias"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "criado_em": {
             "format": "date-time",

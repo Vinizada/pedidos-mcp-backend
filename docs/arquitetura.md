@@ -59,7 +59,9 @@ HTTP e REST, com o token do grupo.
    `validar_carrinho` e depois `criar_pedido_rascunho` com chave de idempotência
    `agente:<documento>:<versão do prompt>`. Em todos os casos, grava a análise com
    `registrar_analise`: decisão, perguntas, motivos, itens extraídos, tokens, custo, latência,
-   revisão obrigatória e guardrails acionados.
+   revisão obrigatória e guardrails acionados. Em esclarecimentos, grava também as
+   **pendências** (cliente e itens com opções), completadas por buscas só de leitura, sem o
+   modelo, quando a Etapa 2 não trouxe candidatos.
 
 ## Pontos de decisão humana
 
@@ -67,7 +69,7 @@ HTTP e REST, com o token do grupo.
 |---|---|
 | Rascunho criado | Confere e confirma fora do sistema; o rascunho não reserva nem baixa estoque |
 | Rascunho com **revisão obrigatória** | Confere com prioridade; os motivos aparecem no selo (documento escaneado, item casado só por descrição, possível injeção, extração suspeita, total ou quantidade acima do limite, decisão alterada por guardrail) |
-| Pedido de esclarecimento | Responde ao cliente com as perguntas geradas e reenvia o documento corrigido |
+| Pedido de esclarecimento | Obtém a resposta do cliente e resolve no formulário do documento: escolhe entre as opções sugeridas (ou busca no catálogo), confirma quantidades e cliente; o backend valida e cria o rascunho, registrando uma análise `humano`. Reenviar um documento corrigido continua possível |
 | Rejeição | Vê o código e o motivo (produto inexistente, inativo, sem estoque, quantidade inválida) |
 | Falha de processamento | Vê o motivo (recusa do modelo, teto de custo, tempo excedido) e reprocessa se fizer sentido |
 
@@ -131,6 +133,8 @@ O modelo é configurável, e os demais foram testados no mesmo pipeline.
 - Uma única versão de layout nos documentos sintéticos; os scans têm boa qualidade.
 - A ambiguidade de produtos depende dos candidatos devolvidos pela busca (até 20 por consulta).
 - Não há resposta automatizada ao cliente: as perguntas de esclarecimento são exibidas para uma
-  pessoa encaminhar.
+  pessoa encaminhar, e a resolução é feita por ela na interface. Esclarecimentos sem itens
+  estruturados (documento fora dos limites, nenhum item identificado) exigem reenvio.
+- A resolução humana usa a chave compartilhada do grupo: não registra qual pessoa resolveu.
 - O worker é único. Dois workers simultâneos podem processar o mesmo documento; a idempotência
   impede pedidos duplicados, mas a segunda análise falha por conflito de chave.

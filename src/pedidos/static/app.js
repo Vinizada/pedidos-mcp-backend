@@ -148,6 +148,8 @@
         try {
           const body = await response.json();
           if (typeof body.mensagem === "string") message = body.mensagem;
+          if (Array.isArray(body.problemas) && body.problemas.length)
+            message += ` ${body.problemas.map((p) => p.mensagem).join(" ")}`;
           else if (typeof body.detail === "string") message = body.detail;
           else if (Array.isArray(body.detail))
             message = body.detail.map((item) => item.msg).join("; ");
@@ -517,11 +519,233 @@
     panel.append(
       node(
         "p",
-        `Processado em ${date(analysis.criado_em)} · modelo ${analysis.modelo} · versão ${analysis.versao_prompt}`,
+        analysis.modelo === "humano"
+          ? `Resolvido na interface em ${date(analysis.criado_em)}`
+          : `Processado em ${date(analysis.criado_em)} · modelo ${analysis.modelo} · versão ${analysis.versao_prompt}`,
         "help",
       ),
     );
     return panel;
+  }
+
+  const productLabel = (p) =>
+    `${p.nome} — ${p.marca} · ${p.embalagem} · ${money(p.preco_unitario)} · estoque ${p.estoque_disponivel}`;
+  const clientLabel = (c) => `${c.codigo} — ${c.nome}`;
+
+  function fillSelect(select, options, label, selected) {
+    const current = selected ?? select.value;
+    select.replaceChildren(node("option", "Selecione…"));
+    select.firstChild.value = "";
+    for (const option of options) {
+      const element = node("option", label(option));
+      element.value = option.produto_id || option.cliente_id;
+      select.append(element);
+    }
+    if ([...select.options].some((o) => o.value === current))
+      select.value = current;
+  }
+
+  function searchControl(id, placeholder, onSearch) {
+    const wrapper = node("div", null, "resolution-search");
+    const input = node("input");
+    input.type = "search";
+    input.id = id;
+    input.placeholder = placeholder;
+    input.setAttribute("aria-label", placeholder);
+    input.maxLength = 200;
+    const go = button("Buscar", async () => {
+      const query = input.value.trim();
+      if (query.length < 2) return notice("Digite ao menos 2 caracteres.", true);
+      go.disabled = true;
+      try {
+        await onSearch(query);
+      } catch (error) {
+        report(error);
+      } finally {
+        go.disabled = false;
+      }
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        go.click();
+      }
+    });
+    wrapper.append(input, go);
+    return wrapper;
+  }
+
+  function resolutionForm(documentItem, analysis) {
+    const pend = analysis.pendencias;
+    const form = node("form", null, "resolution-form");
+    form.append(
+      node("h4", "Resolver esclarecimento"),
+      node(
+        "p",
+        "Escolha cliente, produtos e quantidades conforme a resposta do cliente. O rascunho passa pelas mesmas validações de preço e estoque e não confirma a compra.",
+        "help",
+      ),
+    );
+
+    // Cliente
+    const clientBox = node("fieldset", null, "resolution-item");
+    clientBox.append(node("legend", "Cliente"));
+    const doc = [pend.cliente.codigo_documento, pend.cliente.nome_documento]
+      .filter(Boolean)
+      .join(" — ");
+    clientBox.append(node("p", `No documento: ${doc || "não informado"}`, "help"));
+    if (pend.cliente.pergunta)
+      clientBox.append(node("p", pend.cliente.pergunta, "resolution-question"));
+    const clientSelect = node("select");
+    clientSelect.id = "res-cliente";
+    clientSelect.required = true;
+    const clientLabelEl = node("label", "Cliente do pedido");
+    clientLabelEl.htmlFor = clientSelect.id;
+    const docCode = (pend.cliente.codigo_documento || "").toUpperCase();
+    const preselected =
+      pend.cliente.cliente_id ||
+      pend.cliente.opcoes.find((c) => c.codigo.toUpperCase() === docCode)
+        ?.cliente_id;
+    fillSelect(clientSelect, pend.cliente.opcoes, clientLabel, preselected);
+    clientBox.append(
+      clientLabelEl,
+      clientSelect,
+      searchControl("res-cliente-busca", "Buscar cliente por nome ou código", async (q) => {
+        const data = await api(
+          `/api/clientes?${new URLSearchParams({ consulta: q, limit: 10 })}`,
+          {},
+          "res-cliente",
+        );
+        fillSelect(clientSelect, data.items.filter((c) => c.ativo), clientLabel);
+      }),
+    );
+    form.append(clientBox);
+
+    // Itens
+    const rows = [];
+    for (const item of pend.itens) {
+      const box = node("fieldset", null, "resolution-item");
+      const n = item.item_idx + 1;
+      box.append(node("legend", `Item ${n}: ${item.descricao}`));
+      const asked = [item.quantidade_texto, item.unidade_texto].filter(Boolean).join(" ");
+      box.append(
+        node("p", `Pedido no documento: ${asked || "quantidade não informada"}`, "help"),
+        badge(
+          item.situacao === "resolvido" ? "Resolvido pelo agente" : "Pendente",
+          item.situacao === "resolvido" ? "success" : "waiting",
+        ),
+      );
+      if (item.pergunta) box.append(node("p", item.pergunta, "resolution-question"));
+      const include = node("input");
+      include.type = "checkbox";
+      include.checked = true;
+      include.id = `res-incluir-${n}`;
+      const includeLabel = node("label", null, "resolution-check");
+      includeLabel.append(include, document.createTextNode(" Incluir no rascunho"));
+      const select = node("select");
+      select.id = `res-produto-${n}`;
+      const selectLabel = node("label", "Produto");
+      selectLabel.htmlFor = select.id;
+      const ambiguous = String(item.codigo || "").startsWith("AMBIGUIDADE");
+      const single = item.opcoes.length === 1 && !ambiguous;
+      fillSelect(
+        select,
+        item.opcoes,
+        productLabel,
+        item.produto_id || (single ? item.opcoes[0].produto_id : ""),
+      );
+      const quantity = node("input");
+      quantity.type = "number";
+      quantity.min = "1";
+      quantity.max = "100000";
+      quantity.step = "1";
+      quantity.id = `res-quantidade-${n}`;
+      if (item.quantidade) quantity.value = item.quantidade;
+      const quantityLabel = node("label", "Quantidade (embalagens inteiras)");
+      quantityLabel.htmlFor = quantity.id;
+      include.addEventListener("change", () => {
+        select.disabled = quantity.disabled = !include.checked;
+      });
+      box.append(
+        includeLabel,
+        selectLabel,
+        select,
+        searchControl(`res-busca-${n}`, "Buscar outro produto no catálogo", async (q) => {
+          const data = await api(
+            `/api/produtos?${new URLSearchParams({ consulta: q, limit: 10 })}`,
+            {},
+            `res-produto-${n}`,
+          );
+          fillSelect(select, data.items.filter((p) => p.ativo), productLabel);
+        }),
+        quantityLabel,
+        quantity,
+      );
+      rows.push({ item, include, select, quantity });
+      form.append(box);
+    }
+
+    const note = node("textarea");
+    note.id = "res-observacao";
+    note.maxLength = 500;
+    note.rows = 2;
+    const noteLabel = node("label", "Observação (opcional, ex.: resposta do cliente)");
+    noteLabel.htmlFor = note.id;
+    const submit = node("button", "Criar rascunho com esta resolução", "button primary");
+    submit.type = "submit";
+    form.append(noteLabel, note, submit);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const itens = [];
+      for (const row of rows) {
+        if (!row.include.checked) continue;
+        const qty = Number(row.quantity.value);
+        if (!row.select.value)
+          return notice(`Escolha o produto do item ${row.item.item_idx + 1}.`, true);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 100000)
+          return notice(
+            `Informe uma quantidade inteira entre 1 e 100.000 no item ${row.item.item_idx + 1}.`,
+            true,
+          );
+        itens.push({
+          item_idx: row.item.item_idx,
+          produto_id: row.select.value,
+          quantidade: qty,
+        });
+      }
+      if (!clientSelect.value) return notice("Escolha o cliente do pedido.", true);
+      if (!itens.length) return notice("Inclua ao menos um item no rascunho.", true);
+      submit.disabled = true;
+      submit.textContent = "Criando rascunho…";
+      notice("");
+      try {
+        await api(
+          `/api/documentos/${encodeURIComponent(documentItem.documento_id)}/resolucao`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              analise_id: analysis.analise_id,
+              cliente_id: clientSelect.value,
+              itens,
+              observacao: note.value.trim() || null,
+            }),
+          },
+          "resolucao",
+        );
+        notice("Rascunho criado a partir da sua resolução.");
+        await Promise.all([
+          loadPage("documentos"),
+          showDocument(documentItem.documento_id, false),
+        ]);
+      } catch (error) {
+        report(error);
+        submit.disabled = false;
+        submit.textContent = "Criar rascunho com esta resolução";
+      }
+    });
+    return form;
   }
 
   async function showDocument(id, scroll = true) {
@@ -596,6 +820,15 @@
           ],
         ]),
         analysisPanel(latest),
+        item.status === "aguardando_esclarecimento" && latest?.pendencias
+          ? resolutionForm(item, latest)
+          : item.status === "aguardando_esclarecimento"
+            ? node(
+                "p",
+                "Este esclarecimento não tem opções estruturadas; obtenha a resposta do cliente e envie um documento corrigido.",
+                "empty-hint",
+              )
+            : null,
         related,
         technicalDetails([
           ["Identificador do documento", item.documento_id],
