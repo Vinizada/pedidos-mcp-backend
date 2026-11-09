@@ -16,7 +16,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -137,7 +137,8 @@ class Documento(Base):
             "tamanho_bytes > 0 AND tamanho_bytes <= 10485760", name="ck_documento_tamanho"
         ),
         CheckConstraint(
-            "content_type IN ('application/pdf', 'text/plain')", name="ck_documento_tipo"
+            "content_type IN ('application/pdf', 'text/plain', 'image/png', 'image/jpeg')",
+            name="ck_documento_tipo",
         ),
         CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name="ck_documento_sha256"),
         Index("ix_documentos_criado_em_id", "criado_em", "id"),
@@ -149,3 +150,63 @@ class Documento(Base):
     sha256: Mapped[str] = mapped_column(String(64), index=True)
     storage_key: Mapped[str] = mapped_column(String(40), unique=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AnaliseDocumento(Base):
+    """Resultado registrado pelo consumidor; a situação do documento deriva daqui."""
+
+    __tablename__ = "analises_documento"
+    __table_args__ = (
+        CheckConstraint(
+            "decisao IN ('criar_rascunho', 'pedir_esclarecimento', 'rejeitar', 'falha')",
+            name="ck_analise_decisao",
+        ),
+        CheckConstraint(
+            "(decisao = 'criar_rascunho') = (pedido_id IS NOT NULL)",
+            name="ck_analise_rascunho_pedido",
+        ),
+        CheckConstraint(
+            "decisao <> 'pedir_esclarecimento' OR jsonb_array_length(perguntas) >= 1",
+            name="ck_analise_esclarecimento_pergunta",
+        ),
+        CheckConstraint(
+            "pendencias IS NULL OR decisao = 'pedir_esclarecimento'",
+            name="ck_analise_pendencias_esclarecimento",
+        ),
+        CheckConstraint(
+            "tokens_entrada >= 0 AND tokens_saida >= 0 AND tokens_cache_leitura >= 0"
+            " AND custo_estimado >= 0 AND latencia_ms >= 0",
+            name="ck_analise_metricas",
+        ),
+        Index("ix_analises_documento_documento_criado", "documento_id", "criado_em"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    documento_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("documentos.id", ondelete="RESTRICT")
+    )
+    decisao: Mapped[str] = mapped_column(String(30))
+    pedido_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("pedido_cabecalho.id", ondelete="RESTRICT"), index=True
+    )
+    perguntas: Mapped[list] = mapped_column(JSONB, default=list)
+    motivos: Mapped[list] = mapped_column(JSONB, default=list)
+    extracao: Mapped[dict | None] = mapped_column(JSONB)
+    modelo: Mapped[str] = mapped_column(String(100))
+    versao_prompt: Mapped[str] = mapped_column(String(40))
+    tokens_entrada: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_saida: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_cache_leitura: Mapped[int] = mapped_column(Integer, default=0)
+    custo_estimado: Mapped[Decimal] = mapped_column(Numeric(12, 6), default=Decimal("0"))
+    latencia_ms: Mapped[int] = mapped_column(Integer, default=0)
+    chave_idempotencia: Mapped[str] = mapped_column(String(100), unique=True)
+    hash_requisicao: Mapped[str] = mapped_column(String(64))
+    revisao_obrigatoria: Mapped[bool] = mapped_column(Boolean, default=False)
+    motivos_revisao: Mapped[list] = mapped_column(JSONB, default=list)
+    guardrails_acionados: Mapped[list] = mapped_column(JSONB, default=list)
+    texto_verificavel: Mapped[bool | None] = mapped_column(Boolean)
+    # none_as_null: None vira NULL do SQL (não o JSON null), como exige o CHECK.
+    pendencias: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
+    # clock_timestamp: análises da mesma transação mantêm ordem cronológica distinta.
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.clock_timestamp()
+    )

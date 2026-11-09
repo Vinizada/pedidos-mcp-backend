@@ -2,14 +2,15 @@
 
 Catálogo de produtos e clientes, recebimento de documentos e criação de rascunhos de pedidos. A aplicação reúne interface web, API REST, servidor MCP e PostgreSQL.
 
-O processamento dos documentos é integrado separadamente pelo grupo. Enviar um arquivo o disponibiliza para processamento; o pedido aparece quando o consumidor o cria pela API ou pelo MCP, informando o `documento_id` do upload.
+Um agente de IA generativa (pacote `extrator`) lê cada documento enviado — PDF, TXT ou imagem, inclusive escaneados —, extrai cliente e itens, resolve-os contra o catálogo pelas ferramentas MCP e decide entre **criar um rascunho**, **pedir esclarecimento** ou **rejeitar**. Verificações determinísticas (guardrails) conferem cada decisão antes de qualquer gravação. O agente é opcional: sem ele, o backend continua funcionando para consumidores próprios do grupo.
 
 ## Recursos
 
 - Produtos e clientes com pesquisa e paginação.
-- Upload de PDF/TXT e consulta dos pedidos vinculados.
+- Upload de PDF, TXT, PNG ou JPEG e consulta dos pedidos e análises vinculados.
 - Busca de produtos por EAN/SKU, texto e similaridade semântica.
 - Validação de cliente, preço, disponibilidade, unidade e quantidade.
+- Agente de extração com Claude (leitura nativa de PDF/imagem, sem OCR), guardrails e revisão humana proporcional ao risco.
 - Rascunhos transacionais, com proteção contra repetição concorrente.
 - Dados de demonstração: 100 produtos, 15 clientes e 20 documentos com gabaritos.
 
@@ -83,10 +84,10 @@ Cada instalação tem banco, arquivos e chave próprios. Os UUIDs do catálogo i
 1. Em **Produtos**, pesquise `café`, `MER-001` ou um EAN e confira embalagem, preço e estoque.
 2. Em **Clientes**, pesquise por nome ou código, como `CLI-001`.
 3. Em **Documentos**, envie um arquivo de `data/pedidos/`.
-4. O arquivo fica **Aguardando processamento** até o consumidor externo produzir um pedido.
-5. Depois da criação, clique em **Atualizar** e abra o pedido vinculado. **Pedidos** também lista rascunhos criados sem documento.
+4. O arquivo fica **Aguardando processamento** até o agente (seção 5) ou outro consumidor registrar o resultado.
+5. Clique em **Atualizar** e abra o documento: o painel **Resultado do processamento** mostra o rascunho criado, as perguntas de esclarecimento ou o motivo da rejeição. Em **Aguardando esclarecimento**, o formulário **Resolver esclarecimento** traz cliente, produtos sugeridos e quantidades: confirme com o cliente, ajuste (ou busque outro produto no catálogo) e clique em **Criar rascunho com esta resolução**. O selo **Revisão obrigatória** indica rascunhos que pedem conferência prioritária; use o filtro acima das tabelas para listá-los. **Pedidos** também lista rascunhos criados sem documento.
 
-Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8. O backend armazena o original, sem executar conteúdo, OCR ou extração de itens.
+Limites: **10 MiB** por arquivo; PDF com estrutura válida, de 1 a 100 páginas e sem senha; TXT em UTF-8; PNG ou JPEG conferidos pela assinatura. O backend armazena o original sem executar seu conteúdo; a leitura e a extração ficam no agente.
 
 ### Demonstração completa
 
@@ -100,27 +101,62 @@ O comando envia um TXT, lê seu conteúdo pelo MCP e cria um pedido com itens co
 
 Clique em **Atualizar** na interface para ver o resultado. Cada execução com `--com-documento` cria um exemplo novo, identificado como demonstração. Sem essa opção, o script reutiliza um único rascunho para verificar a conexão MCP.
 
-## 5. Conectar o processamento
+## 5. Processar documentos com IA
+
+O agente roda em um container próprio (perfil `agente`), conversa com o backend apenas por MCP/REST e não recebe credenciais do banco nem os gabaritos.
+
+1. Crie uma chave em [platform.claude.com](https://platform.claude.com) e preencha no `.env`:
+
+   ```bash
+   ANTHROPIC_API_KEY=sua-chave
+   LLM_MODEL=claude-haiku-5-5   # escolhido na avaliação; claude-sonnet-5-5 e claude-opus-5-5 também funcionam
+   ```
+
+   Se o seu `.env` é anterior ao agente, rode o gerador de `.env` da seção 2 de novo: ele acrescenta as variáveis novas sem alterar valores existentes.
+
+2. Processe automaticamente — o worker verifica os documentos pendentes a cada 30 s:
+
+   ```bash
+   docker compose --profile agente up -d --build agente
+   docker compose logs -f agente
+   ```
+
+   Ou processe sob demanda, sem worker:
+
+   ```bash
+   docker compose --profile agente run --rm agente python -m extrator processar <documento_id>
+   docker compose --profile agente run --rm agente python -m extrator processar --pendentes
+   ```
+
+3. Abra **Documentos** na interface e clique em **Atualizar**.
+
+**Custo:** medido em 40 documentos (8/11/2026), cerca de **US$ 0,001 por documento com Haiku 5.5**, US$ 0,016 com Sonnet 5.5 e US$ 0,030 com Opus 5.5. Há teto por documento (`AGENTE_MAX_CUSTO_DOC_USD`, padrão US$ 0,50) e orçamento diário do worker (`AGENTE_ORCAMENTO_DIARIO_USD`, padrão US$ 5). Os logs trazem tokens, custo e latência por documento, nunca o conteúdo.
+
+**O que o agente nunca faz:** confirmar compras, reservar ou baixar estoque, cadastrar clientes, trocar um produto por outro, arredondar quantidades ou seguir instruções escritas dentro do documento. Rascunhos continuam exigindo conferência humana.
+
+Veja [arquitetura do agente](docs/arquitetura.md), [riscos e LGPD](docs/riscos-lgpd.md) e [avaliação](docs/avaliacao.md).
+
+## 6. Conectar outro consumidor
 
 - URL: `http://localhost:8000/mcp`.
 - Transporte: **Streamable HTTP**.
 - Header: `Authorization: Bearer <valor de API_TOKEN>`.
 - O cliente precisa aceitar headers próprios; este perfil não implementa OAuth.
 
-As ferramentas são `buscar_produtos`, `consultar_disponibilidade`, `buscar_cliente`, `validar_carrinho`, `criar_pedido_rascunho` e `consultar_pedido`. Os documentos estão disponíveis também como recursos MCP, inclusive o arquivo original.
+As ferramentas são `buscar_produtos`, `consultar_disponibilidade`, `buscar_cliente`, `validar_carrinho`, `criar_pedido_rascunho`, `registrar_analise` e `consultar_pedido`. `criar_pedido_rascunho` e `registrar_analise` gravam dados e devem ser chamadas pelo código do consumidor, não oferecidas a um modelo generativo. Os documentos estão disponíveis também como recursos MCP, inclusive o arquivo original.
 
 Leia [Integração e contratos](docs/contratos-mcp.md) e os [schemas JSON](contracts/mcp-tools.json), exportados diretamente do servidor.
 
 **Se o consumidor roda em outro container**, `localhost` aponta para esse container. Conecte-o à rede Docker `pedidos-mcp_default` e use `http://backend:8000/mcp`. Não é necessário publicar o backend na rede externa.
 
-## 6. Executar os testes
+## 7. Executar os testes
 
 ```bash
 docker compose --profile test run --build --rm tests
 docker compose --profile test stop test-db
 ```
 
-O comando constrói a imagem de testes e usa um PostgreSQL descartável separado. A suíte verifica contratos, integridade, uploads, autenticação, transações, preços, paginação e concorrência. O banco principal não é alterado. O resultado esperado é uma linha final `passed`, sem falhas.
+O comando constrói a imagem de testes e usa um PostgreSQL descartável separado. A suíte verifica contratos, integridade, uploads, autenticação, transações, preços, paginação, concorrência, ingestão, guardrails, orquestração e worker do agente — sempre com um modelo simulado, sem chamar a API real nem gastar créditos. O banco principal não é alterado. O resultado esperado é uma linha final `passed`, sem falhas.
 
 O perfil de testes não é iniciado pelo `docker compose up -d` normal. Não precisa instalar ferramentas de desenvolvimento para executá-lo.
 
@@ -147,6 +183,11 @@ Os volumes guardam **banco**, **arquivos enviados** e **cache do modelo**. Não 
 | `SEARCH_MODE` | `hybrid`: texto + vetores; `lexical`: texto/trigramas |
 | `ALLOWED_HOSTS` | Hosts aceitos, em array JSON |
 | `ALLOWED_ORIGINS` | Origens de navegador aceitas, em array JSON |
+| `ANTHROPIC_API_KEY` | Chave da API do Claude, usada só pelo agente |
+| `LLM_MODEL` | Modelo do agente; recomendado `claude-haiku-5-5` (ver avaliação) |
+| `LLM_EFFORT` | Profundidade de raciocínio: `low`, `medium` (padrão), `high`, `xhigh`, `max` |
+
+Limites do agente (opcionais): `AGENTE_MAX_PAGINAS`, `AGENTE_MAX_CUSTO_DOC_USD`, `AGENTE_ORCAMENTO_DIARIO_USD`, `AGENTE_TIMEOUT_DOC_S`, `REVISAO_LIMITE_TOTAL_BRL`, `REVISAO_LIMITE_QUANTIDADE`, `AGENTE_MASCARAR_PII_TXT`. Os valores padrão estão em `src/extrator/config.py`.
 
 O modo `hybrid` baixa e executa localmente embeddings multilíngues (~220 MB), sem chave de serviço externo. Para começar sem esse download, altere `SEARCH_MODE=lexical` antes de iniciar. Ao voltar para `hybrid`, rode `docker compose run --rm init` e `docker compose up -d` para indexar e recriar o backend com a configuração atualizada.
 
@@ -163,8 +204,10 @@ O modo `hybrid` baixa e executa localmente embeddings multilíngues (~220 MB), s
 | `401` ou chave inválida | Use a chave desta instalação; após alterá-la, rode `docker compose up -d`. |
 | `403` ao usar outra porta | Atualize `ALLOWED_ORIGINS` para o endereço completo, incluindo protocolo e porta. |
 | `INDICE_INDISPONIVEL` | Reindexe e confira se `EMBEDDING_MODEL` é o mesmo do índice. |
-| Arquivo aguardando processamento | Upload não gera pedido sozinho. Integre o consumidor ou execute a demonstração. |
-| PDF/TXT rejeitado | Confira tamanho, estrutura, senha, páginas e codificação UTF-8. |
+| Arquivo aguardando processamento | Upload não gera pedido sozinho. Suba o agente (seção 5), processe com `python -m extrator processar` ou execute a demonstração. |
+| Agente não processa | `docker compose logs --tail 100 agente`: confira `ANTHROPIC_API_KEY`, se o orçamento diário foi atingido ou se o disjuntor abriu após falhas seguidas da API. |
+| Situação **Falha no processamento** | O motivo aparece no painel do documento (recusa do modelo, teto de custo, tempo excedido). Falhas temporárias da API não são registradas: o documento continua pendente. |
+| Arquivo rejeitado | Confira tamanho, estrutura, senha, páginas, codificação UTF-8 e se a extensão da imagem corresponde ao conteúdo. |
 | Banco não autentica após editar a senha | Alterar `.env` não muda a senha de um volume existente. Restaure o valor anterior ou altere a senha no PostgreSQL. |
 
 ## Organização
@@ -176,7 +219,17 @@ src/pedidos/
   http_security.py       Autenticação, limites e cabeçalhos HTTP
   service.py             Regras de catálogo e pedidos
   document_service.py    Armazenamento e vínculo dos documentos
-  upload_validation.py   Validação estrutural de PDF/TXT
+  upload_validation.py   Validação estrutural de PDF/TXT/PNG/JPEG
+  analise_service.py     Registro idempotente das análises do agente
+  privacidade.py         Mascaramento de dados pessoais em textos livres
+src/extrator/
+  ingestao.py            PDF/TXT/imagem como blocos para o modelo; camada de texto
+  extracao.py            Etapa 1: documento → itens extraídos (saída estruturada)
+  guardrails_extracao.py Ancoragem de evidência, códigos e quantidade
+  resolucao.py           Etapa 2: loop de ferramentas MCP de leitura
+  guardrails_resolucao.py Proveniência, atributos, ambiguidade, cliente, coerência
+  orquestrador.py        Decisão final, rascunho e registro da análise
+  worker.py / cli.py     Processamento contínuo e manual
   mcp_server.py          Ferramentas e recursos MCP
   models.py / schemas.py Entidades relacionais e contratos tipados
   db.py / config.py      Conexões e configuração
@@ -189,6 +242,6 @@ data/gabaritos/          Resultados esperados, separados do processamento
 scripts/                Configuração, demonstração e manutenção
 ```
 
-Veja [modelo de dados](docs/modelo-dados.md), [desenvolvimento](docs/desenvolvimento.md) e [revisão técnica](docs/revisao-tecnica.md). Os dados de demonstração são sintéticos; gabaritos não são servidos pela API/MCP e não devem ser enviados ao consumidor avaliado. Os PDFs de exemplo não cobrem OCR ou diversidade de layouts reais.
+Veja [modelo de dados](docs/modelo-dados.md), [desenvolvimento](docs/desenvolvimento.md) e [revisão técnica](docs/revisao-tecnica.md). Os dados de demonstração são sintéticos; gabaritos não são servidos pela API/MCP e não devem ser enviados ao consumidor avaliado. Além dos 20 casos originais há um conjunto escaneado (`data/pedidos/escaneados/`) e um de ataque (`data/pedidos/ataque/`); nenhum cobre a diversidade de layouts reais.
 
 [Codespaces](docs/codespaces.md) e [hospedagem](docs/hospedagem.md) ficam documentados para uma etapa posterior. O fluxo recomendado neste momento é local.

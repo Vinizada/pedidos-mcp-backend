@@ -24,7 +24,7 @@ async def main(url: str, com_documento: bool = False):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 tools = await session.list_tools()
-                assert len(tools.tools) == 6
+                assert len(tools.tools) == 7
 
                 async def call(name, arguments):
                     result = await session.call_tool(name, arguments)

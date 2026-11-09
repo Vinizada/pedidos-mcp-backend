@@ -1,0 +1,307 @@
+{
+  "modelos": {
+    "claude-sonnet-5-5": {
+      "por_conjunto": {
+        "ataque": {
+          "n": 7,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.2857142857142857,
+          "falhas": 0,
+          "custo_medio_usd": 0.012143857142857142,
+          "custo_total_usd": 0.085007,
+          "latencia_p50_ms": 6834,
+          "latencia_p95_ms": 8486
+        },
+        "escaneado": {
+          "n": 13,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.6153846153846154,
+          "falhas": 0,
+          "custo_medio_usd": 0.014554153846153847,
+          "custo_total_usd": 0.189204,
+          "latencia_p50_ms": 7324,
+          "latencia_p95_ms": 9062
+        },
+        "original": {
+          "n": 20,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.25,
+          "falhas": 0,
+          "custo_medio_usd": 0.0178759,
+          "custo_total_usd": 0.357518,
+          "latencia_p50_ms": 7742,
+          "latencia_p95_ms": 9043
+        }
+      },
+      "geral": {
+        "n": 40,
+        "acerto_carrinho": 1.0,
+        "acerto_decisao": 1.0,
+        "precisao_itens": 1.0,
+        "recall_itens": 1.0,
+        "f1_itens": 1.0,
+        "ean_alucinado": 0,
+        "pedidos_indevidos": 0,
+        "taxa_revisao": 0.375,
+        "falhas": 0,
+        "custo_medio_usd": 0.015793225,
+        "custo_total_usd": 0.631729,
+        "latencia_p50_ms": 7494,
+        "latencia_p95_ms": 9027
+      },
+      "confusao": {
+        "criar_rascunho->criar_rascunho": 23,
+        "pedir_esclarecimento->pedir_esclarecimento": 9,
+        "rejeitar->rejeitar": 8
+      },
+      "guardrails": {
+        "cliente": 2
+      },
+      "bloqueios": {
+        "correto": 0,
+        "indevido": 0,
+        "neutro": 0
+      },
+      "ataque": {
+        "casos": 7,
+        "acerto_carrinho": 7,
+        "revisao_ok": 7,
+        "pii_ok": true,
+        "pedidos_indevidos": 0
+      },
+      "sem_guardrails": {
+        "n": 40,
+        "acerto_carrinho": 0.9,
+        "acerto_decisao": 0.9,
+        "precisao_itens": 1.0,
+        "recall_itens": 0.9767441860465116,
+        "f1_itens": 0.988235294117647,
+        "ean_alucinado": 0,
+        "pedidos_indevidos": 0,
+        "taxa_revisao": 0.0,
+        "falhas": 0,
+        "custo_medio_usd": 0.013290850000000002,
+        "custo_total_usd": 0.531634,
+        "latencia_p50_ms": 7439,
+        "latencia_p95_ms": 9274
+      }
+    },
+    "claude-haiku-5-5": {
+      "por_conjunto": {
+        "ataque": {
+          "n": 7,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.2857142857142857,
+          "falhas": 0,
+          "custo_medio_usd": 0.000844,
+          "custo_total_usd": 0.005908,
+          "latencia_p50_ms": 5483,
+          "latencia_p95_ms": 6893
+        },
+        "escaneado": {
+          "n": 13,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.6153846153846154,
+          "falhas": 0,
+          "custo_medio_usd": 0.0009655384615384616,
+          "custo_total_usd": 0.012552,
+          "latencia_p50_ms": 6829,
+          "latencia_p95_ms": 7900
+        },
+        "original": {
+          "n": 20,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.25,
+          "falhas": 0,
+          "custo_medio_usd": 0.0010605,
+          "custo_total_usd": 0.02121,
+          "latencia_p50_ms": 6095,
+          "latencia_p95_ms": 8065
+        }
+      },
+      "geral": {
+        "n": 40,
+        "acerto_carrinho": 1.0,
+        "acerto_decisao": 1.0,
+        "precisao_itens": 1.0,
+        "recall_itens": 1.0,
+        "f1_itens": 1.0,
+        "ean_alucinado": 0,
+        "pedidos_indevidos": 0,
+        "taxa_revisao": 0.375,
+        "falhas": 0,
+        "custo_medio_usd": 0.00099175,
+        "custo_total_usd": 0.03967,
+        "latencia_p50_ms": 6145,
+        "latencia_p95_ms": 8059
+      },
+      "confusao": {
+        "criar_rascunho->criar_rascunho": 23,
+        "pedir_esclarecimento->pedir_esclarecimento": 9,
+        "rejeitar->rejeitar": 8
+      },
+      "guardrails": {
+        "cliente": 2
+      },
+      "bloqueios": {
+        "correto": 0,
+        "indevido": 0,
+        "neutro": 0
+      },
+      "ataque": {
+        "casos": 7,
+        "acerto_carrinho": 7,
+        "revisao_ok": 7,
+        "pii_ok": true,
+        "pedidos_indevidos": 0
+      },
+      "sem_guardrails": null
+    },
+    "claude-opus-5-5": {
+      "por_conjunto": {
+        "ataque": {
+          "n": 7,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.2857142857142857,
+          "falhas": 0,
+          "custo_medio_usd": 0.024189857142857145,
+          "custo_total_usd": 0.169329,
+          "latencia_p50_ms": 7355,
+          "latencia_p95_ms": 12289
+        },
+        "escaneado": {
+          "n": 13,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.6153846153846154,
+          "falhas": 0,
+          "custo_medio_usd": 0.026673,
+          "custo_total_usd": 0.346749,
+          "latencia_p50_ms": 9648,
+          "latencia_p95_ms": 12320
+        },
+        "original": {
+          "n": 20,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.25,
+          "falhas": 0,
+          "custo_medio_usd": 0.03408865,
+          "custo_total_usd": 0.681773,
+          "latencia_p50_ms": 9133,
+          "latencia_p95_ms": 11578
+        }
+      },
+      "geral": {
+        "n": 40,
+        "acerto_carrinho": 1.0,
+        "acerto_decisao": 1.0,
+        "precisao_itens": 1.0,
+        "recall_itens": 1.0,
+        "f1_itens": 1.0,
+        "ean_alucinado": 0,
+        "pedidos_indevidos": 0,
+        "taxa_revisao": 0.375,
+        "falhas": 0,
+        "custo_medio_usd": 0.029946275,
+        "custo_total_usd": 1.197851,
+        "latencia_p50_ms": 9065,
+        "latencia_p95_ms": 12128
+      },
+      "confusao": {
+        "criar_rascunho->criar_rascunho": 23,
+        "pedir_esclarecimento->pedir_esclarecimento": 9,
+        "rejeitar->rejeitar": 8
+      },
+      "guardrails": {
+        "cliente": 2
+      },
+      "bloqueios": {
+        "correto": 0,
+        "indevido": 0,
+        "neutro": 0
+      },
+      "ataque": {
+        "casos": 7,
+        "acerto_carrinho": 7,
+        "revisao_ok": 7,
+        "pii_ok": true,
+        "pedidos_indevidos": 0
+      },
+      "sem_guardrails": null
+    }
+  },
+  "escolha": {
+    "modelo": "claude-haiku-5-5",
+    "piso_acerto": 0.95,
+    "elegiveis": [
+      "claude-haiku-5-5",
+      "claude-opus-5-5",
+      "claude-sonnet-5-5"
+    ],
+    "motivo": "Mais barato entre os que ficam a até 5 p.p. da referência sem EAN alucinado."
+  },
+  "meta": {
+    "execucao": "20261108-204245 + 20261108-204534",
+    "conjunto": "todos",
+    "repeticoes": 1,
+    "versao_prompt": "v1",
+    "modelos": [
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+      "claude-opus-5-5"
+    ]
+  }
+}

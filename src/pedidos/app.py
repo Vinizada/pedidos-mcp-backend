@@ -57,6 +57,7 @@ async def business_error(request, exc: DomainError):
     status = {
         "PEDIDO_NAO_ENCONTRADO": 404,
         "IDEMPOTENCIA_CONFLITO": 409,
+        "RESOLUCAO_INVALIDA": 409,
         "INDICE_INDISPONIVEL": 503,
         "DOCUMENTO_NAO_ENCONTRADO": 404,
         "ARQUIVO_INDISPONIVEL": 404,

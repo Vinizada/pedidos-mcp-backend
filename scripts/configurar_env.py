@@ -4,6 +4,30 @@ import os
 import secrets
 from pathlib import Path
 
+# Variáveis adicionadas depois da primeira versão; acrescentadas a um .env existente.
+NOVAS_VARIAVEIS = {
+    "ANTHROPIC_API_KEY": "",
+    "LLM_MODEL": "claude-sonnet-5-5",
+    "LLM_EFFORT": "medium",
+}
+
+
+def completar_env(destination: Path) -> list[str]:
+    """Acrescenta variáveis ausentes sem alterar nenhum valor já definido."""
+    content = destination.read_text()
+    present = {
+        line.split("=", 1)[0].strip()
+        for line in content.splitlines()
+        if "=" in line and not line.lstrip().startswith("#")
+    }
+    missing = [name for name in NOVAS_VARIAVEIS if name not in present]
+    if missing:
+        prefix = "" if content.endswith("\n") or not content else "\n"
+        lines = "".join(f"{name}={NOVAS_VARIAVEIS[name]}\n" for name in missing)
+        with destination.open("a") as stream:
+            stream.write(f"{prefix}# Agente (perfil `agente`).\n{lines}")
+    return missing
+
 
 def main():
     root = Path(__file__).resolve().parents[1]
@@ -16,7 +40,11 @@ def main():
     try:
         fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
-        print(".env já existe; configuração preservada.")
+        missing = completar_env(destination)
+        if missing:
+            print(f".env já existe; valores preservados e acrescentado: {', '.join(missing)}.")
+        else:
+            print(".env já existe; configuração preservada.")
         return
     with os.fdopen(fd, "w") as stream:
         stream.write(content)

@@ -903,6 +903,18 @@
             "title": "Repeticao Idempotente",
             "type": "boolean"
           },
+          "revisao_obrigatoria": {
+            "default": false,
+            "title": "Revisao Obrigatoria",
+            "type": "boolean"
+          },
+          "motivos_revisao": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motivos Revisao",
+            "type": "array"
+          },
           "aviso": {
             "default": "Rascunho: não reserva nem baixa estoque; confirmação humana fora deste protótipo.",
             "title": "Aviso",
@@ -921,6 +933,1184 @@
           "itens"
         ],
         "title": "PedidoView",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "registrar_analise",
+      "description": "Registra a decisão do processamento de um documento. Reuse a chave em retries.",
+      "inputSchema": {
+        "$defs": {
+          "AnaliseInput": {
+            "additionalProperties": false,
+            "description": "Resultado do processamento de um documento, registrado pelo consumidor.",
+            "properties": {
+              "documento_id": {
+                "format": "uuid",
+                "title": "Documento Id",
+                "type": "string"
+              },
+              "chave_idempotencia": {
+                "maxLength": 100,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9._:-]+$",
+                "title": "Chave Idempotencia",
+                "type": "string"
+              },
+              "decisao": {
+                "enum": [
+                  "criar_rascunho",
+                  "pedir_esclarecimento",
+                  "rejeitar",
+                  "falha"
+                ],
+                "title": "Decisao",
+                "type": "string"
+              },
+              "pedido_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pedido Id"
+              },
+              "perguntas": {
+                "items": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "title": "Perguntas",
+                "type": "array"
+              },
+              "motivos": {
+                "items": {
+                  "$ref": "#/$defs/MotivoAnalise"
+                },
+                "maxItems": 100,
+                "title": "Motivos",
+                "type": "array"
+              },
+              "extracao": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Extracao"
+              },
+              "modelo": {
+                "maxLength": 100,
+                "minLength": 1,
+                "title": "Modelo",
+                "type": "string"
+              },
+              "versao_prompt": {
+                "maxLength": 40,
+                "minLength": 1,
+                "title": "Versao Prompt",
+                "type": "string"
+              },
+              "tokens_entrada": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tokens Entrada",
+                "type": "integer"
+              },
+              "tokens_saida": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tokens Saida",
+                "type": "integer"
+              },
+              "tokens_cache_leitura": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Tokens Cache Leitura",
+                "type": "integer"
+              },
+              "custo_estimado": {
+                "anyOf": [
+                  {
+                    "minimum": 0.0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0",
+                "title": "Custo Estimado"
+              },
+              "latencia_ms": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Latencia Ms",
+                "type": "integer"
+              },
+              "revisao_obrigatoria": {
+                "default": false,
+                "title": "Revisao Obrigatoria",
+                "type": "boolean"
+              },
+              "motivos_revisao": {
+                "items": {
+                  "maxLength": 60,
+                  "minLength": 2,
+                  "pattern": "^[a-z0-9_]+$",
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "title": "Motivos Revisao",
+                "type": "array"
+              },
+              "guardrails_acionados": {
+                "items": {
+                  "$ref": "#/$defs/GuardrailAcionado"
+                },
+                "maxItems": 200,
+                "title": "Guardrails Acionados",
+                "type": "array"
+              },
+              "texto_verificavel": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Texto Verificavel"
+              },
+              "pendencias": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Pendencias"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "required": [
+              "documento_id",
+              "chave_idempotencia",
+              "decisao",
+              "modelo",
+              "versao_prompt"
+            ],
+            "title": "AnaliseInput",
+            "type": "object"
+          },
+          "GuardrailAcionado": {
+            "additionalProperties": false,
+            "properties": {
+              "guardrail": {
+                "maxLength": 60,
+                "minLength": 2,
+                "pattern": "^[a-z0-9_]+$",
+                "title": "Guardrail",
+                "type": "string"
+              },
+              "item_idx": {
+                "anyOf": [
+                  {
+                    "maximum": 99,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Item Idx"
+              },
+              "decisao_original": {
+                "enum": [
+                  "criar_rascunho",
+                  "pedir_esclarecimento",
+                  "rejeitar",
+                  "falha"
+                ],
+                "title": "Decisao Original",
+                "type": "string"
+              },
+              "decisao_final": {
+                "enum": [
+                  "criar_rascunho",
+                  "pedir_esclarecimento",
+                  "rejeitar",
+                  "falha"
+                ],
+                "title": "Decisao Final",
+                "type": "string"
+              }
+            },
+            "required": [
+              "guardrail",
+              "decisao_original",
+              "decisao_final"
+            ],
+            "title": "GuardrailAcionado",
+            "type": "object"
+          },
+          "MotivoAnalise": {
+            "additionalProperties": false,
+            "properties": {
+              "codigo": {
+                "maxLength": 60,
+                "minLength": 2,
+                "pattern": "^[A-Z0-9_]+$",
+                "title": "Codigo",
+                "type": "string"
+              },
+              "mensagem": {
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Mensagem",
+                "type": "string"
+              },
+              "item_idx": {
+                "anyOf": [
+                  {
+                    "maximum": 99,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Item Idx"
+              }
+            },
+            "required": [
+              "codigo",
+              "mensagem"
+            ],
+            "title": "MotivoAnalise",
+            "type": "object"
+          },
+          "OpcaoCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "codigo": {
+                "maxLength": 40,
+                "title": "Codigo",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "codigo",
+              "nome"
+            ],
+            "title": "OpcaoCliente",
+            "type": "object"
+          },
+          "OpcaoProduto": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "maxLength": 40,
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "maxLength": 13,
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "maxLength": 100,
+                "title": "Marca",
+                "type": "string"
+              },
+              "embalagem": {
+                "maxLength": 200,
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "default": 0,
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "embalagem"
+            ],
+            "title": "OpcaoProduto",
+            "type": "object"
+          },
+          "PendenciaCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "cliente_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Cliente Id"
+              },
+              "codigo_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo Documento"
+              },
+              "nome_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Nome Documento"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoCliente"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "situacao"
+            ],
+            "title": "PendenciaCliente",
+            "type": "object"
+          },
+          "PendenciaItem": {
+            "additionalProperties": false,
+            "description": "Item de um documento em esclarecimento, resolvido ou não pelo agente.",
+            "properties": {
+              "item_idx": {
+                "maximum": 99,
+                "minimum": 0,
+                "title": "Item Idx",
+                "type": "integer"
+              },
+              "descricao": {
+                "maxLength": 300,
+                "title": "Descricao",
+                "type": "string"
+              },
+              "quantidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade Texto"
+              },
+              "unidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unidade Texto"
+              },
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "codigo": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "produto_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Produto Id"
+              },
+              "quantidade": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoProduto"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "item_idx",
+              "descricao",
+              "situacao"
+            ],
+            "title": "PendenciaItem",
+            "type": "object"
+          },
+          "Pendencias": {
+            "additionalProperties": false,
+            "description": "Dados estruturados para uma pessoa resolver o esclarecimento na interface.",
+            "properties": {
+              "cliente": {
+                "$ref": "#/$defs/PendenciaCliente"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/PendenciaItem"
+                },
+                "maxItems": 100,
+                "title": "Itens",
+                "type": "array"
+              }
+            },
+            "required": [
+              "cliente"
+            ],
+            "title": "Pendencias",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "entrada": {
+            "$ref": "#/$defs/AnaliseInput"
+          }
+        },
+        "required": [
+          "entrada"
+        ],
+        "title": "registrar_analiseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "GuardrailAcionado": {
+            "additionalProperties": false,
+            "properties": {
+              "guardrail": {
+                "maxLength": 60,
+                "minLength": 2,
+                "pattern": "^[a-z0-9_]+$",
+                "title": "Guardrail",
+                "type": "string"
+              },
+              "item_idx": {
+                "anyOf": [
+                  {
+                    "maximum": 99,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Item Idx"
+              },
+              "decisao_original": {
+                "enum": [
+                  "criar_rascunho",
+                  "pedir_esclarecimento",
+                  "rejeitar",
+                  "falha"
+                ],
+                "title": "Decisao Original",
+                "type": "string"
+              },
+              "decisao_final": {
+                "enum": [
+                  "criar_rascunho",
+                  "pedir_esclarecimento",
+                  "rejeitar",
+                  "falha"
+                ],
+                "title": "Decisao Final",
+                "type": "string"
+              }
+            },
+            "required": [
+              "guardrail",
+              "decisao_original",
+              "decisao_final"
+            ],
+            "title": "GuardrailAcionado",
+            "type": "object"
+          },
+          "MotivoAnalise": {
+            "additionalProperties": false,
+            "properties": {
+              "codigo": {
+                "maxLength": 60,
+                "minLength": 2,
+                "pattern": "^[A-Z0-9_]+$",
+                "title": "Codigo",
+                "type": "string"
+              },
+              "mensagem": {
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Mensagem",
+                "type": "string"
+              },
+              "item_idx": {
+                "anyOf": [
+                  {
+                    "maximum": 99,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Item Idx"
+              }
+            },
+            "required": [
+              "codigo",
+              "mensagem"
+            ],
+            "title": "MotivoAnalise",
+            "type": "object"
+          },
+          "OpcaoCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "cliente_id": {
+                "format": "uuid",
+                "title": "Cliente Id",
+                "type": "string"
+              },
+              "codigo": {
+                "maxLength": 40,
+                "title": "Codigo",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cliente_id",
+              "codigo",
+              "nome"
+            ],
+            "title": "OpcaoCliente",
+            "type": "object"
+          },
+          "OpcaoProduto": {
+            "additionalProperties": false,
+            "properties": {
+              "produto_id": {
+                "format": "uuid",
+                "title": "Produto Id",
+                "type": "string"
+              },
+              "sku": {
+                "maxLength": 40,
+                "title": "Sku",
+                "type": "string"
+              },
+              "ean": {
+                "maxLength": 13,
+                "title": "Ean",
+                "type": "string"
+              },
+              "nome": {
+                "maxLength": 200,
+                "title": "Nome",
+                "type": "string"
+              },
+              "marca": {
+                "maxLength": 100,
+                "title": "Marca",
+                "type": "string"
+              },
+              "embalagem": {
+                "maxLength": 200,
+                "title": "Embalagem",
+                "type": "string"
+              },
+              "preco_unitario": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Preco Unitario"
+              },
+              "estoque_disponivel": {
+                "default": 0,
+                "title": "Estoque Disponivel",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "produto_id",
+              "sku",
+              "ean",
+              "nome",
+              "marca",
+              "embalagem"
+            ],
+            "title": "OpcaoProduto",
+            "type": "object"
+          },
+          "PendenciaCliente": {
+            "additionalProperties": false,
+            "properties": {
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "cliente_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Cliente Id"
+              },
+              "codigo_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo Documento"
+              },
+              "nome_documento": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Nome Documento"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoCliente"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "situacao"
+            ],
+            "title": "PendenciaCliente",
+            "type": "object"
+          },
+          "PendenciaItem": {
+            "additionalProperties": false,
+            "description": "Item de um documento em esclarecimento, resolvido ou não pelo agente.",
+            "properties": {
+              "item_idx": {
+                "maximum": 99,
+                "minimum": 0,
+                "title": "Item Idx",
+                "type": "integer"
+              },
+              "descricao": {
+                "maxLength": 300,
+                "title": "Descricao",
+                "type": "string"
+              },
+              "quantidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade Texto"
+              },
+              "unidade_texto": {
+                "anyOf": [
+                  {
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unidade Texto"
+              },
+              "situacao": {
+                "enum": [
+                  "resolvido",
+                  "pendente"
+                ],
+                "title": "Situacao",
+                "type": "string"
+              },
+              "codigo": {
+                "anyOf": [
+                  {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Codigo"
+              },
+              "pergunta": {
+                "anyOf": [
+                  {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pergunta"
+              },
+              "produto_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Produto Id"
+              },
+              "quantidade": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Quantidade"
+              },
+              "opcoes": {
+                "items": {
+                  "$ref": "#/$defs/OpcaoProduto"
+                },
+                "maxItems": 20,
+                "title": "Opcoes",
+                "type": "array"
+              }
+            },
+            "required": [
+              "item_idx",
+              "descricao",
+              "situacao"
+            ],
+            "title": "PendenciaItem",
+            "type": "object"
+          },
+          "Pendencias": {
+            "additionalProperties": false,
+            "description": "Dados estruturados para uma pessoa resolver o esclarecimento na interface.",
+            "properties": {
+              "cliente": {
+                "$ref": "#/$defs/PendenciaCliente"
+              },
+              "itens": {
+                "items": {
+                  "$ref": "#/$defs/PendenciaItem"
+                },
+                "maxItems": 100,
+                "title": "Itens",
+                "type": "array"
+              }
+            },
+            "required": [
+              "cliente"
+            ],
+            "title": "Pendencias",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "analise_id": {
+            "format": "uuid",
+            "title": "Analise Id",
+            "type": "string"
+          },
+          "documento_id": {
+            "format": "uuid",
+            "title": "Documento Id",
+            "type": "string"
+          },
+          "decisao": {
+            "enum": [
+              "criar_rascunho",
+              "pedir_esclarecimento",
+              "rejeitar",
+              "falha"
+            ],
+            "title": "Decisao",
+            "type": "string"
+          },
+          "pedido_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pedido Id"
+          },
+          "perguntas": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Perguntas",
+            "type": "array"
+          },
+          "motivos": {
+            "items": {
+              "$ref": "#/$defs/MotivoAnalise"
+            },
+            "title": "Motivos",
+            "type": "array"
+          },
+          "extracao": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracao"
+          },
+          "modelo": {
+            "title": "Modelo",
+            "type": "string"
+          },
+          "versao_prompt": {
+            "title": "Versao Prompt",
+            "type": "string"
+          },
+          "tokens_entrada": {
+            "title": "Tokens Entrada",
+            "type": "integer"
+          },
+          "tokens_saida": {
+            "title": "Tokens Saida",
+            "type": "integer"
+          },
+          "tokens_cache_leitura": {
+            "title": "Tokens Cache Leitura",
+            "type": "integer"
+          },
+          "custo_estimado": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Custo Estimado"
+          },
+          "latencia_ms": {
+            "title": "Latencia Ms",
+            "type": "integer"
+          },
+          "revisao_obrigatoria": {
+            "title": "Revisao Obrigatoria",
+            "type": "boolean"
+          },
+          "motivos_revisao": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motivos Revisao",
+            "type": "array"
+          },
+          "guardrails_acionados": {
+            "items": {
+              "$ref": "#/$defs/GuardrailAcionado"
+            },
+            "title": "Guardrails Acionados",
+            "type": "array"
+          },
+          "texto_verificavel": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texto Verificavel"
+          },
+          "pendencias": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Pendencias"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "criado_em": {
+            "format": "date-time",
+            "title": "Criado Em",
+            "type": "string"
+          },
+          "repeticao_idempotente": {
+            "default": false,
+            "title": "Repeticao Idempotente",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "analise_id",
+          "documento_id",
+          "decisao",
+          "pedido_id",
+          "perguntas",
+          "motivos",
+          "extracao",
+          "modelo",
+          "versao_prompt",
+          "tokens_entrada",
+          "tokens_saida",
+          "tokens_cache_leitura",
+          "custo_estimado",
+          "latencia_ms",
+          "revisao_obrigatoria",
+          "motivos_revisao",
+          "guardrails_acionados",
+          "texto_verificavel",
+          "criado_em"
+        ],
+        "title": "AnaliseView",
         "type": "object"
       },
       "annotations": {
@@ -1096,6 +2286,18 @@
             "default": false,
             "title": "Repeticao Idempotente",
             "type": "boolean"
+          },
+          "revisao_obrigatoria": {
+            "default": false,
+            "title": "Revisao Obrigatoria",
+            "type": "boolean"
+          },
+          "motivos_revisao": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Motivos Revisao",
+            "type": "array"
           },
           "aviso": {
             "default": "Rascunho: não reserva nem baixa estoque; confirmação humana fora deste protótipo.",

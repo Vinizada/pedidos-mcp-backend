@@ -1,5 +1,19 @@
 from pedidos.schemas import Problema
 
+# Códigos que justificam a decisão `rejeitar` registrada por um consumidor.
+# QUANTIDADE_INVALIDA cobre zero/negativo, que o contrato de itens rejeita na validação.
+CODIGOS_REJEICAO = frozenset(
+    {
+        "CLIENTE_INVALIDO",
+        "PRODUTO_INEXISTENTE",
+        "PRODUTO_INATIVO",
+        "SEM_PRECO",
+        "ESTOQUE_INSUFICIENTE",
+        "CARRINHO_INVALIDO",
+        "QUANTIDADE_INVALIDA",
+    }
+)
+
 
 class DomainError(Exception):
     """Erro de negócio seguro para exposição ao cliente, sem detalhes internos."""

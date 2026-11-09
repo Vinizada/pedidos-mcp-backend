@@ -19,13 +19,20 @@ dependencies = [
   "pydantic-settings>=2.8,<3",
   "sqlalchemy>=2.0,<3",
   "uvicorn>=0.34,<1",
+  "anthropic>=1,<2",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "reportlab>=4,<5"]
+dev = [
+    "pytest>=8,<10",
+    "httpx>=0.28,<1",
+    "ruff>=0.11,<1",
+    "reportlab>=4,<5",
+    "pypdfium2>=4,<6",
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pedidos"]
+packages = ["src/pedidos", "src/extrator"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

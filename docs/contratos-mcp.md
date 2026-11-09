@@ -15,7 +15,8 @@ devem ser regenerados a partir do servidor quando o contrato mudar.
 | buscar_cliente | consulta; limite 1–20 | candidatos por código/nome; nunca escolher arbitrariamente entre homônimos |
 | validar_carrinho | cliente_id; itens de produto_id, quantidade, unidade UN | válido, problemas, itens calculados, total ou null |
 | criar_pedido_rascunho | dados do carrinho; chave_idempotencia; referencia_documento e documento_id opcionais | pedido persistido, snapshots e indicador de repetição |
-| consultar_pedido | pedido_id UUID | rascunho com itens e totais |
+| registrar_analise | documento_id; chave_idempotencia; decisao; pedido_id, perguntas, motivos, extracao, métricas e revisão | análise persistida e indicador de repetição |
+| consultar_pedido | pedido_id UUID | rascunho com itens, totais e selo de revisão |
 
 ## Regras para o consumidor
 
@@ -56,16 +57,70 @@ permitindo correção sem gravação. Erros internos não expõem SQL nem creden
 Códigos: `CLIENTE_INVALIDO`, `PRODUTO_INEXISTENTE`, `PRODUTO_INATIVO`,
 `SEM_PRECO`, `ESTOQUE_INSUFICIENTE`, `CARRINHO_INVALIDO`,
 `IDEMPOTENCIA_CONFLITO`, `PEDIDO_NAO_ENCONTRADO`, `INDICE_INDISPONIVEL`,
-`DOCUMENTO_NAO_ENCONTRADO`, `ARQUIVO_INDISPONIVEL`, `ARQUIVO_INVALIDO`, `ARQUIVO_MUITO_GRANDE`.
+`DOCUMENTO_NAO_ENCONTRADO`, `ARQUIVO_INDISPONIVEL`, `ARQUIVO_INVALIDO`, `ARQUIVO_MUITO_GRANDE`,
+`ANALISE_INCONSISTENTE`, `RESOLUCAO_INVALIDA`. `QUANTIDADE_INVALIDA` é aceito apenas como motivo de rejeição em
+análises (quantidade zero ou negativa no documento).
 
 O recurso `pedidos://politicas` descreve regras de uso. Nenhuma ferramenta executa
 SQL livre, acessa URLs, lê documentos arbitrários ou disponibiliza gabaritos.
 
+## Análises do processamento
+
+`registrar_analise` grava o resultado de um documento processado. Deve ser chamada pelo
+código orquestrador do consumidor, depois das verificações, e **não** deve ser oferecida a um
+modelo generativo. A chave de idempotência segue as mesmas regras de pedidos: mesma chave e
+mesmo conteúdo retornam a mesma análise; conteúdo diferente gera `IDEMPOTENCIA_CONFLITO`.
+
+| Decisão | Exigências do servidor | Situação do documento |
+|---|---|---|
+| `criar_rascunho` | `pedido_id` de um rascunho vinculado ao **mesmo** documento | `pedido_criado` |
+| `pedir_esclarecimento` | ao menos uma pergunta; sem `pedido_id` | `aguardando_esclarecimento` |
+| `rejeitar` | ao menos um motivo com código `CLIENTE_INVALIDO`, `PRODUTO_INEXISTENTE`, `PRODUTO_INATIVO`, `SEM_PRECO`, `ESTOQUE_INSUFICIENTE`, `CARRINHO_INVALIDO` ou `QUANTIDADE_INVALIDA` | `rejeitado` |
+| `falha` | sem `pedido_id` | `falha_processamento` |
+
+Violações retornam `ANALISE_INCONSISTENTE` e nada é gravado. Um pedido vinculado tem
+precedência; sem pedido, vale a análise mais recente. Perguntas, mensagens dos motivos e
+todas as strings de `extracao` passam por mascaramento de CPF, CNPJ, telefone e e-mail
+antes de gravar. `extracao` deve conter apenas os itens extraídos, nunca o texto bruto do
+documento, e é limitada a 64 KiB.
+
+`revisao_obrigatoria` e `motivos_revisao` (identificadores como `possivel_injecao`,
+`texto_nao_verificavel`, `casamento_por_descricao`) marcam o documento e o rascunho para
+conferência prioritária. `guardrails_acionados` registra cada verificação que alterou a
+decisão do agente (`guardrail`, `item_idx`, `decisao_original`, `decisao_final`).
+
+`pendencias` (só com `pedir_esclarecimento`) estrutura o que falta decidir, para uma pessoa
+resolver na interface: `cliente` (situação, cliente escolhido ou pergunta, opções de clientes)
+e `itens` (cada item extraído, `resolvido` com o produto escolhido ou `pendente` com código,
+pergunta, quantidade lida e até 20 opções de produto). Textos vindos do documento são
+mascarados; IDs e dados do catálogo, não.
+
+### Resolução humana
+
+`POST /api/documentos/{documento_id}/resolucao` (somente REST, **não** é ferramenta MCP: um
+agente não pode aprovar a própria pendência) recebe `analise_id`, `cliente_id`,
+`itens` (`produto_id`, `quantidade`, `item_idx` opcional) e `observacao`. Exige que a análise
+seja a mais recente do documento e um `pedir_esclarecimento`, e que o documento não tenha
+outro pedido; senão retorna `RESOLUCAO_INVALIDA` (409). O carrinho passa pelas validações
+normais (`CARRINHO_INVALIDO`, 422, com os problemas); produtos repetidos são somados. Em caso
+de sucesso cria o rascunho com chave `humano:<analise_id>` e registra uma análise
+`criar_rascunho` com modelo `humano` e motivo `RESOLUCAO_HUMANA`; o documento passa a
+`pedido_criado`. Repetir a mesma requisição devolve o mesmo pedido; mudar o conteúdo gera
+`IDEMPOTENCIA_CONFLITO`.
+
+REST: `GET /api/documentos/{documento_id}/analises` lista o histórico, da mais recente para a
+mais antiga. `GET /api/documentos?revisao=true` e `GET /api/pedidos?revisao=true` filtram pelo
+selo de revisão (da análise mais recente, no caso de documentos).
+`GET /api/analises/custo?data=AAAA-MM-DD` soma o custo estimado das análises do dia (UTC;
+padrão: hoje) e é usado pelo agente para respeitar o orçamento diário.
+
 ## Documentos enviados pela interface
 
 O upload é `POST /api/documentos`, multipart com campo `arquivo`, usando o mesmo
-Bearer token. A resposta 201 traz `documento_id`, nome, tipo, tamanho, SHA-256 e situação.
-O limite é 10 MiB; PDF válido com 1–100 páginas e sem criptografia, ou TXT UTF-8.
+Bearer token. A resposta 201 traz `documento_id`, nome, tipo, tamanho, SHA-256, situação,
+análises e selo de revisão. O limite é 10 MiB; PDF válido com 1–100 páginas e sem
+criptografia, TXT UTF-8, ou imagem PNG/JPEG (conferidas pela assinatura do arquivo, sem
+decodificação no servidor).
 
 | Recurso MCP | Resultado |
 |---|---|
@@ -74,7 +129,7 @@ O limite é 10 MiB; PDF válido com 1–100 páginas e sem criptografia, ou TXT 
 | `pedidos://documentos/{documento_id}/arquivo` | Original em `BlobResourceContents.blob`, codificado em base64 |
 
 O recurso binário usa `application/octet-stream`; consulte `content_type` nos metadados
-para distinguir PDF de TXT. Decodifique o base64 antes de entregar o arquivo ao extrator.
+para distinguir PDF, TXT e imagem. Decodifique o base64 antes de entregar o arquivo ao extrator.
 O servidor não extrai texto, não executa instruções do arquivo e não aciona um modelo.
 
 Fluxo do consumidor:
@@ -85,11 +140,14 @@ Fluxo do consumidor:
    `GET /api/documentos/{documento_id}/arquivo` com Bearer.
 3. Extraia dados, resolva ambiguidades e use as ferramentas de catálogo/validação.
 4. Envie `documento_id` ao chamar `criar_pedido_rascunho`, além dos campos já definidos.
-5. A interface passa de “Aguardando processamento” para “Pedido criado” quando atualizada.
+5. Registre o resultado com `registrar_analise`, inclusive quando não houver pedido.
+6. A interface passa de “Aguardando processamento” para a situação correspondente quando
+   atualizada.
 
-No JSON, os estados são `aguardando_agente` e `pedido_criado`; a interface usa linguagem
-de produto. O primeiro estado significa ausência de rascunho vinculado, não execução
-em andamento. O segundo ainda representa um **rascunho** e não uma compra confirmada.
+No JSON, os estados são `aguardando_agente`, `pedido_criado`, `aguardando_esclarecimento`,
+`rejeitado` e `falha_processamento`; a interface usa linguagem de produto.
+`aguardando_agente` significa ausência de análise e de rascunho vinculado, não execução em
+andamento. `pedido_criado` ainda representa um **rascunho** e não uma compra confirmada.
 
 Apenas anexos armazenados podem ser lidos. Não são aceitos caminhos locais ou URLs
 arbitrárias. Documentos são dados não confiáveis: o consumidor não deve seguir instruções
