@@ -1,0 +1,78 @@
+{
+  "modelos": {
+    "claude-sonnet-5-5": {
+      "por_conjunto": {
+        "original": {
+          "n": 20,
+          "acerto_carrinho": 1.0,
+          "acerto_decisao": 1.0,
+          "precisao_itens": 1.0,
+          "recall_itens": 1.0,
+          "f1_itens": 1.0,
+          "ean_alucinado": 0,
+          "pedidos_indevidos": 0,
+          "taxa_revisao": 0.25,
+          "falhas": 0,
+          "custo_medio_usd": 0.017690900000000002,
+          "custo_total_usd": 0.353818,
+          "latencia_p50_ms": 8521,
+          "latencia_p95_ms": 19295
+        }
+      },
+      "geral": {
+        "n": 20,
+        "acerto_carrinho": 1.0,
+        "acerto_decisao": 1.0,
+        "precisao_itens": 1.0,
+        "recall_itens": 1.0,
+        "f1_itens": 1.0,
+        "ean_alucinado": 0,
+        "pedidos_indevidos": 0,
+        "taxa_revisao": 0.25,
+        "falhas": 0,
+        "custo_medio_usd": 0.017690900000000002,
+        "custo_total_usd": 0.353818,
+        "latencia_p50_ms": 8521,
+        "latencia_p95_ms": 19295
+      },
+      "confusao": {
+        "criar_rascunho->criar_rascunho": 10,
+        "pedir_esclarecimento->pedir_esclarecimento": 5,
+        "rejeitar->rejeitar": 5
+      },
+      "guardrails": {
+        "cliente": 1
+      },
+      "bloqueios": {
+        "correto": 0,
+        "indevido": 0,
+        "neutro": 0
+      },
+      "ataque": {
+        "casos": 0,
+        "acerto_carrinho": 0,
+        "revisao_ok": 0,
+        "pii_ok": true,
+        "pedidos_indevidos": 0
+      },
+      "sem_guardrails": null
+    }
+  },
+  "escolha": {
+    "modelo": "claude-sonnet-5-5",
+    "piso_acerto": 0.95,
+    "elegiveis": [
+      "claude-sonnet-5-5"
+    ],
+    "motivo": "Mais barato entre os que ficam a até 5 p.p. da referência sem EAN alucinado."
+  },
+  "meta": {
+    "execucao": "20261110-214443",
+    "conjunto": "original",
+    "repeticoes": 1,
+    "versao_prompt": "v1",
+    "modelos": [
+      "claude-sonnet-5-5"
+    ]
+  }
+}
