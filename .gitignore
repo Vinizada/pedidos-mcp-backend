@@ -20,3 +20,16 @@ uploads/
 .playwright-mcp/
 # Enunciado fornecido pelo professor; não distribuir no repositório.
 Trabalho IA Generativa.pdf
+# Playwright - resultados e evidências temporárias
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Playwright - resultados e evidências temporárias
+test-results/
+playwright-report/
+playwright/.cache/
