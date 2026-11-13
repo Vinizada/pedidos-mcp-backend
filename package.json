@@ -1,0 +1,21 @@
+{
+  "name": "pedidos-mcp-backend",
+  "version": "1.0.0",
+  "description": "Catálogo de produtos e clientes, recebimento de documentos e criação de rascunhos de pedidos. A aplicação reúne interface web, API REST, servidor MCP e PostgreSQL.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
